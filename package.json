@@ -1,6 +1,6 @@
 {
   "name": "nintendo-music-rpc-bridge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Electron bridge for Nintendo Music Discord Rich Presence.",
   "main": "app/dist/main.js",
   "scripts": {
