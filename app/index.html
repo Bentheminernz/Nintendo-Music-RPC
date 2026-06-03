@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nintendo Music RPC</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: #f5f5f5;
+        color: #1a1a1a;
+      }
+
+      .container {
+        padding: 20px;
+        max-width: 400px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        letter-spacing: -0.01em;
+      }
+
+      .section {
+        margin-bottom: 24px;
+      }
+
+      .section:last-child {
+        margin-bottom: 0;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #dc2626;
+      }
+
+      .status-dot.connected {
+        background: #16a34a;
+      }
+
+      .status-text {
+        font-size: 13px;
+        color: #666;
+      }
+
+      .track-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+      }
+
+      .track-name {
+        font-size: 15px;
+        font-weight: 500;
+        color: #1a1a1a;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .track-name.empty {
+        color: #999;
+        font-weight: 400;
+      }
+
+      .instruction {
+        font-size: 12px;
+        color: #666;
+        line-height: 1.5;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e5e5e5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Music to Discord</h1>
+
+        <div class="section">
+          <div class="status">
+            <div class="status-dot" id="rpc-dot"></div>
+            <span class="status-text" id="rpc-status">Connecting</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="track-label">Now Playing</div>
+          <div class="track-name empty" id="track-name">Nothing yet</div>
+          <p id="game-name"></p>
+          <p id="playback-time"></p>
+        </div>
+
+        <div class="instruction">
+          Keep this app running. Load the extension on music.nintendo.com.
+        </div>
+      </div>
+    </div>
+    <script src="dist/renderer.js"></script>
+  </body>
+</html>

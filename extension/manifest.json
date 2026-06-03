@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Nintendo Music Discord RPC",
+  "version": "1.0.0",
+  "description": "Logs Nintendo Music tracks to Discord Rich Presence.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://music.nintendo.com/*",
+    "http://127.0.0.1:17891/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "nintendo-music-logger@benlawrence.nz",
+      "strict_min_version": "109.0"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://music.nintendo.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
