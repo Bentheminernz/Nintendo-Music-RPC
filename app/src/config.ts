@@ -1,19 +1,8 @@
-import path from 'node:path';
-import { app } from 'electron';
-import dotenv from 'dotenv';
-
-// when packaged, the env is in some a different path so load based on dev or 'prod'
-const envPath = app.isPackaged
-  ? path.join(process.resourcesPath, '.env')
-  : path.resolve('.env');
-
-dotenv.config({ path: envPath });
-
 /** The port that the bridge will listen on. */
-export const PORT = Number(process.env.BRIDGE_PORT || 17891);
+export const PORT = 17891;
 
 /** The client ID of the Discord application. */
-export const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+export const CLIENT_ID = '1487315634667782184';
 
 /** Path to Discord's local IPC socket / named pipe. */
 export function getDiscordIpcPath(): string {

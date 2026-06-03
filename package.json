@@ -4,11 +4,11 @@
   "description": "Electron bridge for Nintendo Music Discord Rich Presence.",
   "main": "app/dist/main.js",
   "scripts": {
-    "copy-assets": "cp -R app/assets app/dist/assets",
+    "copy-assets": "node -e \"const fs=require('fs');fs.cpSync('app/assets','app/dist/assets',{recursive:true})\"",
     "build": "tsc && npm run copy-assets",
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
-    "dist": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac"
+    "dist": "npm run build && electron-builder"
   },
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
@@ -24,17 +24,26 @@
         ]
       }
     },
-    "extraResources": [
-      { "from": ".env", "to": ".env" }
-    ]
+    "win": {
+      "icon": "extension/icons/icon.png",
+      "target": [
+        { "target": "nsis", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "linux": {
+      "icon": "extension/icons/icon.png",
+      "target": [
+        { "target": "AppImage", "arch": ["x64", "arm64"] }
+      ]
+    }
   },
   "dependencies": {
-    "discord-rpc": "^4.0.1",
-    "dotenv": "^16.6.1"
+    "discord-rpc": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "electron": "^37.2.4",
+    "electron-builder": "^25.1.8",
     "sharp": "^0.34.5",
     "typescript": "^5.7.2"
   }
