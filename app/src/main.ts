@@ -1,6 +1,8 @@
 import { app, shell } from 'electron';
-import { createLogger } from './logger';
+import { createLogger } from './utils/logger';
 import { RichPresenceApp } from './app';
+import { createServer } from './httpServer/server';
+import { setupAutoLaunch } from './utils/autoLaunch';
 
 const { log, warn } = createLogger('electron');
 
@@ -8,6 +10,10 @@ process.on('uncaughtException', (error) => warn('Uncaught exception.', error));
 process.on('unhandledRejection', (reason) => warn('Unhandled rejection.', reason));
 
 const presence = new RichPresenceApp();
+const server = createServer({
+  getCurrentTrack: () => presence.getState().currentTrack,
+  subscribe: (cb) => presence.subscribe(cb),
+});
 
 // this stops the app from quitting when all windows are closed
 app.on('window-all-closed', () => {});
@@ -17,6 +23,7 @@ app.whenReady().then(() => {
 
   if (process.platform === 'darwin') app.dock?.hide();
 
+  setupAutoLaunch();
   presence.start();
 
   // todo: determine if i wanna keep this, its lowkey annoying

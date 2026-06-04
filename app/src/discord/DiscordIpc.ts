@@ -1,8 +1,8 @@
 import net from 'node:net';
 import crypto from 'node:crypto';
 import { OP, encodePacket, decodePacket } from './packet';
-import { getDiscordIpcPath } from '../config';
-import { createLogger } from '../logger';
+import { getDiscordIpcPath } from '../utils/config';
+import { createLogger } from '../utils/logger';
 import type { DiscordActivity } from '../types';
 
 const { log, warn } = createLogger('discord');

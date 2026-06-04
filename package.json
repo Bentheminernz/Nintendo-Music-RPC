@@ -13,6 +13,7 @@
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
     "productName": "Nintendo Music RPC",
+    "copyright": "Copyright © 2026 Ben Lawrence",
     "mac": {
       "identity": null,
       "icon": "app/assets/icon.icns",
@@ -27,13 +28,25 @@
     "win": {
       "icon": "extension/icons/icon.png",
       "target": [
-        { "target": "nsis", "arch": ["x64", "arm64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ]
     },
     "linux": {
       "icon": "extension/icons/icon.png",
       "target": [
-        { "target": "AppImage", "arch": ["x64", "arm64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ]
     },
     "publish": {
@@ -42,7 +55,11 @@
     }
   },
   "dependencies": {
-    "discord-rpc": "^4.0.1"
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "discord-rpc": "^4.0.1",
+    "express": "^5.2.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

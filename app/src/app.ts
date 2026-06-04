@@ -1,11 +1,11 @@
 import type { Server } from 'node:http';
 import { app } from 'electron';
-import { createLogger } from './logger';
-import { CLIENT_ID, PORT } from './config';
+import { createLogger } from './utils/logger';
+import { CLIENT_ID, PORT } from './utils/config';
 import { DiscordIpc } from './discord/DiscordIpc';
 import { buildActivity } from './discord/activity';
-import { TrayManager } from './TrayManager';
-import { createBridgeServer } from './bridgeServer';
+import { TrayManager } from './utils/TrayManager';
+import { createBridgeServer } from './BridgerServer';
 import type { BridgeState, Track, TrackPayload } from './types';
 
 const { log, warn } = createLogger('app');
@@ -23,6 +23,7 @@ export class RichPresenceApp {
   private server: Server | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private readonly tray: TrayManager;
+  private readonly subscribers = new Set<(track: Track | null) => void>();
 
   constructor() {
     this.tray = new TrayManager({
@@ -117,6 +118,7 @@ export class RichPresenceApp {
     this.resetHeartbeat();
     this.tray.update();
     this.updateActivity();
+    this.notify(this.currentTrack);
   }
 
   private handleConnect(): void {
@@ -133,6 +135,7 @@ export class RichPresenceApp {
     this.tabConnected = false;
     this.discord?.clearActivity();
     this.tray.update();
+    this.notify(null);
   }
 
   private resetHeartbeat(): void {
@@ -153,6 +156,7 @@ export class RichPresenceApp {
     this.tabConnected = false;
     this.discord?.clearActivity();
     this.tray.update();
+    this.notify(null);
   }
 
   private toggleRpc(): void {
@@ -184,7 +188,16 @@ export class RichPresenceApp {
     this.discord.setActivity(buildActivity(track));
   }
 
-  private getState(): BridgeState {
+  subscribe(callback: (track: Track | null) => void): () => void {
+    this.subscribers.add(callback);
+    return () => this.subscribers.delete(callback);
+  }
+
+  private notify(track: Track | null): void {
+    for (const cb of this.subscribers) cb(track);
+  }
+
+  getState(): BridgeState {
     return {
       ok: true,
       rpcReady: this.discord?.ready ?? false,

@@ -1,4 +1,4 @@
-import type { Track, DiscordActivity, DiscordActivityButton } from '../types';
+import { Track, DiscordActivity, DiscordActivityButton } from '../types';
 
 const truncate = (text: string, max = 15): string =>
   text.length > max ? `${text.slice(0, max)}...` : text;
@@ -42,14 +42,14 @@ export function buildActivity(track: Track): DiscordActivity {
   if (track.id) {
     buttons.push({
       label: 'Play on Nintendo Music',
-      url: `https://music.nintendo.com/shared/en-US/NZ/tracks/${track.id}/`,
+      url: Track.trackURL(track) || 'https://music.nintendo.com',
     });
   }
 
   if (track.gameId && track.gameName) {
     buttons.push({
       label: `View ${truncate(track.gameName)} on Nintendo Music`,
-      url: `https://music.nintendo.com/en-US/game/${track.gameId}/`,
+      url: Track.gameURL(track) || 'https://music.nintendo.com',
     });
   }
 

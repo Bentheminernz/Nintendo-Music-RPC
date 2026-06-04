@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { Tray, Menu, shell, nativeImage } from 'electron';
 import { createLogger } from './logger';
-import type { Track } from './types';
+import type { Track } from '../types';
 
 const { log } = createLogger('tray');
 
@@ -84,13 +84,13 @@ export class TrayManager {
         label: 'Download Firefox Extension',
         click: () =>
           shell.openExternal(
-            'https://addons.mozilla.org/en-US/firefox/addon/nintendo-music-extension/',
+            'https://example.com',
           ),
       },
       {
         label: 'Download Chrome Extension',
         click: () =>
-          shell.openExternal('https://chrome.google.com/webstore/detail/nintendo-music-extensio/'),
+          shell.openExternal('https://chromewebstore.google.com/detail/nintendo-music-discord-rp/boiekifeicdcjjjfeinllgcmnmmbgegf'),
       },
       { type: 'separator' },
       {

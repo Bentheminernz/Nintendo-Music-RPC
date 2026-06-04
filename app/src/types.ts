@@ -11,6 +11,16 @@ export interface Track {
   receivedAt: string;
 }
 
+export namespace Track {
+  export function trackURL(track: Track): string | null {
+    return track.id ? `https://music.nintendo.com/shared/en-US/NZ/tracks/${track.id}/` : null;
+  }
+
+  export function gameURL(track: Track): string | null {
+    return track.gameId ? `https://music.nintendo.com/en-US/game/${track.gameId}/` : null;
+  }
+}
+
 /** The raw payload posted to the bridge by the browser extension. */
 export interface TrackPayload {
   trackName?: string;

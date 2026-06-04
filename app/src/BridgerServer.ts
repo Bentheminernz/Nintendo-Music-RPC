@@ -2,7 +2,7 @@
 // updates plus connect/disconnect signals driven by tab presence.
 
 import http from 'node:http';
-import { createLogger } from './logger';
+import { createLogger } from './utils/logger';
 import type { BridgeState, TrackPayload } from './types';
 
 const { log, warn } = createLogger('bridge');
