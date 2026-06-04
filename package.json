@@ -2,6 +2,10 @@
   "name": "nintendo-music-rpc-bridge",
   "version": "0.2.2",
   "description": "Electron bridge for Nintendo Music Discord Rich Presence.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bentheminernz/Nintendo-Music-RPC.git"
+  },
   "main": "app/dist/main.js",
   "scripts": {
     "copy-assets": "node -e \"const fs=require('fs');fs.cpSync('app/assets','app/dist/assets',{recursive:true})\"",

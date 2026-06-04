@@ -13,7 +13,6 @@
 
   function renderOffline() {
     $('header-sub').textContent = 'App not running';
-    $('status-dot').className = 'status-dot disconnected';
     $('discord-dot').className = 'discord-dot';
     $('discord-label').textContent = 'Discord';
 
@@ -27,44 +26,34 @@
   }
 
   function renderState(state) {
-    const { ok, rpcReady, rpcEnabled, currentTrack } = state;
+    const { rpcReady, rpcEnabled, currentTrack } = state;
 
-    // Header sub
-    $('header-sub').textContent = rpcReady
-      ? 'Active'
-      : rpcEnabled ? 'Waiting for Discord' : 'RPC disabled';
-
-    // Status dot + text
-    const dot = $('status-dot');
-    const statusText = $('status-text');
-    const statusSub = $('status-sub');
-
+    // Compute status values as plain strings — no DOM reads before the innerHTML write
+    let dotClass, statusTextStr, statusSubStr;
     if (rpcReady) {
-      dot.className = 'status-dot connected';
-      statusText.textContent = 'Connected to Discord';
-      statusSub.textContent = rpcEnabled ? 'Rich Presence is active' : 'RPC is disabled';
+      dotClass = 'connected';
+      statusTextStr = 'Connected to Discord';
+      statusSubStr = rpcEnabled ? 'Rich Presence is active' : 'RPC is disabled';
     } else if (rpcEnabled) {
-      dot.className = 'status-dot partial';
-      statusText.textContent = 'Waiting for Discord';
-      statusSub.textContent = 'Open Discord to enable Rich Presence';
+      dotClass = 'partial';
+      statusTextStr = 'Waiting for Discord';
+      statusSubStr = 'Open Discord to enable Rich Presence';
     } else {
-      dot.className = 'status-dot disconnected';
-      statusText.textContent = 'RPC disabled';
-      statusSub.textContent = 'Re-enable via the tray icon';
+      dotClass = 'disconnected';
+      statusTextStr = 'RPC disabled';
+      statusSubStr = 'Re-enable via the tray icon';
     }
 
-    // Discord footer indicator
+    $('header-sub').textContent = rpcReady ? 'Active' : rpcEnabled ? 'Waiting for Discord' : 'RPC disabled';
     $('discord-dot').className = rpcReady ? 'discord-dot ready' : 'discord-dot';
     $('discord-label').textContent = rpcReady ? 'Discord connected' : 'Discord offline';
 
-    // Track section
-    const main = $('main-content');
     let trackHTML = `
       <div class="status-card">
-        <div class="status-dot ${rpcReady ? 'connected' : rpcEnabled ? 'partial' : 'disconnected'}" id="status-dot"></div>
+        <div class="status-dot ${dotClass}" id="status-dot"></div>
         <div>
-          <div class="status-text" id="status-text">${statusText.textContent}</div>
-          <div class="status-sub" id="status-sub">${statusSub.textContent}</div>
+          <div class="status-text" id="status-text">${statusTextStr}</div>
+          <div class="status-sub" id="status-sub">${statusSubStr}</div>
         </div>
       </div>
     `;
@@ -78,7 +67,7 @@
       const duration = currentTrack.duration;
 
       const thumbEl = thumb
-        ? `<img class="track-thumb" src="${thumb}" alt="">`
+        ? `<img class="track-thumb" src="${escapeHtml(thumb)}" alt="">`
         : `<div class="track-thumb-placeholder">♪</div>`;
 
       const pausedBadge = paused
@@ -101,7 +90,7 @@
       `;
     }
 
-    main.innerHTML = trackHTML;
+    $('main-content').innerHTML = trackHTML;
   }
 
   function escapeHtml(str) {
