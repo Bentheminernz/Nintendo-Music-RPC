@@ -11,6 +11,15 @@
     "https://music.nintendo.com/*",
     "http://127.0.0.1:17891/*"
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Nintendo Music RPC",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
   "background": {
     "service_worker": "background.js",
     "scripts": ["background.js"]

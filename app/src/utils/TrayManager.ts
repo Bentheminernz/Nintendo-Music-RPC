@@ -23,7 +23,7 @@ export class TrayManager {
   constructor(private readonly options: TrayOptions) {}
 
   create(): void {
-    const iconPath = path.join(__dirname, 'assets', 'tray-icon-template.png');
+    const iconPath = path.join(__dirname, '..', 'assets', 'tray-icon-template.png');
     const icon = fs.existsSync(iconPath)
       ? nativeImage.createFromPath(iconPath)
       : nativeImage.createEmpty();

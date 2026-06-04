@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: --mac
+            artifact-glob: dist/*.dmg
+            artifact-name: mac
+          - os: windows-latest
+            platform: --win
+            artifact-glob: dist/*.exe
+            artifact-name: win
+          - os: ubuntu-latest
+            platform: --linux
+            artifact-glob: dist/*.AppImage
+            artifact-name: linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npx tsc
+
+      - name: Copy assets
+        run: node -e "const fs=require('fs');fs.cpSync('app/assets','app/dist/assets',{recursive:true})"
+
+      - name: Package
+        run: npx electron-builder ${{ matrix.platform }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nintendo-music-rpc-${{ matrix.artifact-name }}-${{ github.sha }}
+          path: ${{ matrix.artifact-glob }}
+          if-no-files-found: error

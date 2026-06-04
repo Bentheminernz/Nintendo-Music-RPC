@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #18191c;
+      color: #dbdee1;
+      font-size: 13px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      background: #111214;
+      border-bottom: 1px solid #2b2d31;
+    }
+    .header img { width: 24px; height: 24px; border-radius: 4px; }
+    .header-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f2f3f5;
+      letter-spacing: 0.01em;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: #80848e;
+      margin-top: 1px;
+    }
+
+    .status-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2b2d31;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .status-dot.connected    { background: #23a55a; box-shadow: 0 0 6px #23a55a88; }
+    .status-dot.partial      { background: #f0b232; box-shadow: 0 0 6px #f0b23288; }
+    .status-dot.disconnected { background: #80848e; }
+    .status-dot.loading      { background: #80848e; animation: pulse 1.2s ease-in-out infinite; }
+
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    .status-text { font-size: 13px; color: #dbdee1; }
+    .status-sub  { font-size: 11px; color: #80848e; margin-top: 2px; }
+
+    .track-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2b2d31;
+    }
+    .track-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #2b2d31;
+    }
+    .track-thumb-placeholder {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      background: #2b2d31;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4e5058;
+      font-size: 18px;
+    }
+    .track-info { flex: 1; min-width: 0; }
+    .track-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f2f3f5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-game {
+      font-size: 11px;
+      color: #80848e;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-time {
+      font-size: 11px;
+      color: #80848e;
+      margin-top: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+    .paused-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      color: #f0b232;
+      background: #f0b23220;
+      border-radius: 3px;
+      padding: 1px 5px;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    .footer {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-label { font-size: 11px; color: #4e5058; }
+    .discord-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #80848e;
+    }
+    .discord-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #80848e;
+    }
+    .discord-dot.ready { background: #23a55a; }
+
+    .offline-card {
+      padding: 20px 16px;
+      text-align: center;
+      border-bottom: 1px solid #2b2d31;
+    }
+    .offline-icon { font-size: 28px; margin-bottom: 8px; }
+    .offline-title { font-size: 13px; font-weight: 600; color: #f2f3f5; margin-bottom: 4px; }
+    .offline-sub { font-size: 11px; color: #80848e; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icons/48.png" alt="">
+    <div>
+      <div class="header-title">Nintendo Music RPC</div>
+      <div class="header-sub" id="header-sub">Checking…</div>
+    </div>
+  </div>
+
+  <div id="main-content">
+    <div class="status-card">
+      <div class="status-dot loading" id="status-dot"></div>
+      <div>
+        <div class="status-text" id="status-text">Connecting…</div>
+        <div class="status-sub" id="status-sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-label">Nintendo Music RPC</span>
+    <div class="discord-status">
+      <div class="discord-dot" id="discord-dot"></div>
+      <span id="discord-label">Discord</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
