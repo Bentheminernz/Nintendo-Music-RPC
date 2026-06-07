@@ -21,8 +21,14 @@
         <div class="offline-icon">🎵</div>
         <div class="offline-title">App not running</div>
         <div class="offline-sub">Start the Nintendo Music RPC desktop app to enable Discord Rich Presence.</div>
+        <button class="download-btn" id="download-btn">⬇ Download App</button>
       </div>
     `;
+
+    $('download-btn').addEventListener('click', () => {
+      const tabs = (typeof browser !== 'undefined' ? browser : chrome).tabs;
+      tabs.create({ url: 'https://github.com/bentheminernz/nintendo-Music-RPC/releases/latest' });
+    });
   }
 
   function renderState(state) {

@@ -86,13 +86,13 @@ export class TrayManager {
         label: 'Open Nintendo Music',
         click: () => shell.openExternal('https://music.nintendo.com'),
       },
-      {
-        label: 'Download Firefox Extension',
-        click: () =>
-          shell.openExternal(
-            'https://example.com',
-          ),
-      },
+      // {
+      //   label: 'Download Firefox Extension',
+      //   click: () =>
+      //     shell.openExternal(
+      //       'https://example.com',
+      //     ),
+      // },
       {
         label: 'Download Chrome Extension',
         click: () =>
