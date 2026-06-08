@@ -1,5 +1,16 @@
+export enum RpcImageSource {
+  Game = 'game',
+  Track = 'track',
+  Playlist = 'playlist',
+}
+
 /** A track as tracked internally by the bridge. */
 export interface Track {
+  playlist?: {
+    playlistId: string | null;
+    playlistImageURL?: string | null;
+    playlistName?: string | null;
+  },
   track: {
     name: string;
     id: string | null;
@@ -30,6 +41,9 @@ export namespace Track {
 
 /** The raw payload posted to the bridge by the browser extension. */
 export interface TrackPayload {
+  playlist?: {
+    playlistId?: string;
+  },
   track: {
     trackName?: string;
     trackId?: string | null;

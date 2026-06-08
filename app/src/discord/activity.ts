@@ -1,4 +1,4 @@
-import { Track, DiscordActivity, DiscordActivityButton, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID } from '../types';
+import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID } from '../types';
 import { createLogger } from '../utils/logger';
 
 const { log } = createLogger('activity');
@@ -8,7 +8,16 @@ const truncate = (text: string, max = 15): string =>
 
 export interface ActivityOptions {
   splatoonDetailedRpc: boolean;
-  swapRpcImages: boolean;
+  largeRpcImage: RpcImageSource;
+  smallRpcImage: RpcImageSource;
+}
+
+function resolveImageUrl(source: RpcImageSource, track: Track): string | null {
+  switch (source) {
+    case RpcImageSource.Game: return track.game.gameImage;
+    case RpcImageSource.Track: return track.track.thumbnailURL;
+    case RpcImageSource.Playlist: return track.playlist?.playlistImageURL ?? track.track.thumbnailURL;
+  }
 }
 
 export function buildActivity(track: Track, opts: ActivityOptions): DiscordActivity {
@@ -52,24 +61,28 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
     };
   }
 
-  if (track.track.thumbnailURL) {
-    activity.assets = {
-      large_image: track.track.thumbnailURL,
-      large_text: track.paused ? `${gameName} · ⏸ Paused` : `${gameName}`,
-    };
-  }
+  const largeImageUrl = resolveImageUrl(opts.largeRpcImage, track);
+  const smallImageUrl = resolveImageUrl(opts.smallRpcImage, track);
 
-  if (track.game.gameImage) {
-    const largeImage = opts.swapRpcImages ? track.game.gameImage : track.track.thumbnailURL || track.game.gameImage;
-    const largeText = opts.swapRpcImages ? `${gameName}` : track.paused ? `${gameName} · ⏸ Paused` : `${gameName}`;
-    const smallImage = opts.swapRpcImages ? track.track.thumbnailURL || track.game.gameImage : track.game.gameImage;
-    const smallText = opts.swapRpcImages ? track.paused ? `${gameName} · ⏸ Paused` : `${gameName}` : `${gameName}`;
+  const largeText =
+    opts.largeRpcImage === RpcImageSource.Playlist ? (track.playlist?.playlistName ?? track.track.name)
+    : opts.largeRpcImage === RpcImageSource.Track ? track.track.name
+    : track.paused ? `${gameName} · ⏸ Paused` : gameName;
+
+  const smallText =
+    opts.smallRpcImage === RpcImageSource.Playlist ? (track.playlist?.playlistName ?? track.track.name)
+    : opts.smallRpcImage === RpcImageSource.Track ? track.track.name
+    : track.paused ? `${gameName} · ⏸ Paused` : gameName;
+
+  if (largeImageUrl) {
     activity.assets = {
-      large_image: largeImage,
+      large_image: largeImageUrl,
       large_text: largeText,
-      small_image: smallImage,
-      small_text: smallText,
     };
+    if (smallImageUrl && smallImageUrl !== largeImageUrl) {
+      activity.assets.small_image = smallImageUrl;
+      activity.assets.small_text = smallText;
+    }
   }
 
   const buttons: DiscordActivityButton[] = [];

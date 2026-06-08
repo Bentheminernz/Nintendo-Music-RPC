@@ -2,17 +2,20 @@ import { app } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createLogger } from './logger';
+import { RpcImageSource } from '../types';
 
 const { log, warn } = createLogger('preferences');
 
 export interface Preferences {
   splatoonDetailedRpc: boolean;
-  swapRpcImages: boolean;
+  largeRpcImage: RpcImageSource;
+  smallRpcImage: RpcImageSource;
 }
 
 const DEFAULTS: Preferences = {
   splatoonDetailedRpc: true,
-  swapRpcImages: false,
+  largeRpcImage: RpcImageSource.Track,
+  smallRpcImage: RpcImageSource.Game,
 };
 
 export class PreferencesStore {

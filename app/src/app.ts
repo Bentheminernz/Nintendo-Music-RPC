@@ -10,6 +10,7 @@ import type { Preferences } from './utils/preferences';
 import { PreferencesWindow } from './utils/PreferencesWindow';
 import { createBridgeServer } from './BridgerServer';
 import type { BridgeState, Track, TrackPayload } from './types';
+import { RpcImageSource } from './types';
 
 const { log, warn } = createLogger('app');
 
@@ -21,6 +22,7 @@ export class RichPresenceApp {
   private currentTrack: Track | null = null;
   private rpcEnabled = true;
   private tabConnected = true;
+  private readonly playlistCache = new Map<string, { imageUrl: string; name: string }>();
 
   private discord: DiscordIpc | null = null;
   private server: Server | null = null;
@@ -119,6 +121,8 @@ export class RichPresenceApp {
       return;
     }
 
+    const playlistId = payload.playlist?.playlistId || null;
+
     this.currentTrack = {
       track: {
         name: payload.track.trackName,
@@ -132,6 +136,11 @@ export class RichPresenceApp {
         gameImage: payload.game.gameImage || null,
         formalHardware: payload.game.formalHardware || null,
       },
+      playlist: {
+        playlistId,
+        playlistImageURL: playlistId ? (this.playlistCache.get(playlistId)?.imageUrl ?? null) : null,
+        playlistName: playlistId ? (this.playlistCache.get(playlistId)?.name ?? null) : null,
+      },
       currentTime: typeof payload.currentTime === 'number' ? payload.currentTime : null,
       duration: typeof payload.duration === 'number' ? payload.duration : null,
       paused: typeof payload.paused === 'boolean' ? payload.paused : null,
@@ -140,6 +149,7 @@ export class RichPresenceApp {
 
     log('Track updated.', {
       trackName: payload.track.trackName,
+      playlistId,
       currentTime: payload.currentTime,
       duration: payload.duration,
       paused: payload.paused,
@@ -150,6 +160,42 @@ export class RichPresenceApp {
     this.tray.update();
     this.updateActivity();
     this.notify(this.currentTrack);
+
+    if (playlistId && !this.playlistCache.has(playlistId)) {
+      void this.fetchPlaylistData(playlistId);
+    }
+  }
+
+  private async fetchPlaylistData(playlistId: string): Promise<void> {
+    if (playlistId === 'favorite') {
+      log('Skipping fetch for favorite playlist.');
+      this.playlistCache.set(playlistId, { imageUrl: 'star', name: 'Favorites' });
+      if (this.currentTrack?.playlist?.playlistId === playlistId) {
+        this.currentTrack.playlist.playlistImageURL = 'star';
+        this.currentTrack.playlist.playlistName = 'Favorites';
+        this.updateActivity();
+      }
+      return;
+    }
+
+    try {
+      const url = `https://api.m.nintendo.com/catalog/officialPlaylists/${playlistId}?country=NZ&lang=en-US`;
+      const res = await fetch(url);
+      const data = await res.json() as { thumbnailURL?: string; name?: string };
+
+      const imageUrl = data?.thumbnailURL ?? null;
+      const name = data?.name ?? null;
+      if (!imageUrl) return;
+
+      this.playlistCache.set(playlistId, { imageUrl, name: name ?? '' });
+      if (this.currentTrack?.playlist?.playlistId === playlistId) {
+        this.currentTrack.playlist.playlistImageURL = imageUrl;
+        this.currentTrack.playlist.playlistName = name;
+        this.updateActivity();
+      }
+    } catch (err) {
+      warn('Failed to fetch playlist data.', { playlistId, err });
+    }
   }
 
   private handleConnect(): void {
@@ -216,7 +262,7 @@ export class RichPresenceApp {
       return;
     }
 
-    const opts = this.prefs?.getAll() ?? { splatoonDetailedRpc: true, swapRpcImages: false };
+    const opts = this.prefs?.getAll() ?? { splatoonDetailedRpc: true, largeRpcImage: RpcImageSource.Track, smallRpcImage: RpcImageSource.Game };
     log('Updating Discord activity.', { track: track.track.name, opts });
     this.discord.setActivity(buildActivity(track, opts));
   }
