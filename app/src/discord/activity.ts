@@ -19,11 +19,18 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
   let state: string;
 
   if (isSplatoon && opts.splatoonDetailedRpc) {
-    const title = track.track.name.split('/')[0].trim();
-    const artist = track.track.name.split('/')[1]?.trim() ?? '';
-    details = title;
-    state = `${artist} · ${gameName}`;
-    log('Using Splatoon detailed format.', { details, state });
+    const parts = track.track.name.split('/');
+    if (parts.length >= 2) {
+      const title = parts[0].trim();
+      const artist = parts[1].trim();
+      details = title;
+      state = `${artist} · ${gameName}`;
+      log('Using Splatoon detailed format.', { details, state });
+    } else {
+      details = track.track.name;
+      state = notation ? `${notation} · ${gameName}` : `From ${gameName}`;
+      log('Using Splatoon detailed format (no artist separator found, using standard).', { details, state });
+    }
   } else {
     details = track.track.name;
     state = notation ? `${notation} · ${gameName}` : `From ${gameName}`;

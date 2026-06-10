@@ -48,7 +48,7 @@ export class PreferencesWindow {
       },
     });
 
-    void this.win.loadFile(htmlPath);
+    void this.win.loadURL(`file://${htmlPath}`);
     if (!app.isPackaged) {
       this.win.webContents.openDevTools({ mode: 'detach' });
     }
