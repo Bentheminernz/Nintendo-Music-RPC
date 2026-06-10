@@ -12,17 +12,21 @@
     "build": "tsc && npm run copy-assets",
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:linux": "docker run --rm -ti -v ${PWD}:/project -w /project electronuserland/builder npm run dist -- --linux"
   },
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
-    "asarUnpack": ["**/preload-prefs.js", "**/preferences.html"],
     "productName": "Nintendo Music RPC",
     "copyright": "Copyright © 2026 Ben Lawrence",
     "extraResources": [
       {
         "from": "app/dist/preferences.html",
         "to": "app/dist/preferences.html"
+      },
+      {
+        "from": "app/dist/preload-prefs.js",
+        "to": "app/dist/preload-prefs.js"
       }
     ],
     "mac": {
