@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
-    "asarUnpack": ["app/dist/preferences.html", "app/dist/preload-prefs.js"],
+    "asarUnpack": ["**/preload-prefs.js", "**/preferences.html"],
     "productName": "Nintendo Music RPC",
     "copyright": "Copyright © 2026 Ben Lawrence",
     "mac": {
