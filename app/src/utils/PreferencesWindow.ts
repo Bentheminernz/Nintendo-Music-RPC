@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import { BrowserWindow } from 'electron';
 import { createLogger } from './logger';
 import type { Preferences } from './preferences';
+import { preferencesHtml } from '../preferencesHtml';
 
 const { log, warn } = createLogger('prefs-window');
 
 export class PreferencesWindow {
-  private win: BrowserWindow | null = null;
+  win: BrowserWindow | null = null;
 
   open(): void {
     if (this.win && !this.win.isDestroyed()) {
@@ -17,17 +18,16 @@ export class PreferencesWindow {
     }
 
     const preloadPath = path.join(__dirname, '..', 'preload-prefs.js');
-    const htmlPath = path.join(__dirname, '..', 'preferences.html');
 
     log('Opening preferences window.', {
       preloadPath,
       preloadExists: fs.existsSync(preloadPath),
-      htmlPath,
-      htmlExists: fs.existsSync(htmlPath),
+      __dirname,
     });
 
     if (!fs.existsSync(preloadPath)) {
-      warn('Preload script not found at expected path!', preloadPath);
+      warn('Preload script not found!', preloadPath);
+      return;
     }
 
     this.win = new BrowserWindow({
@@ -45,14 +45,19 @@ export class PreferencesWindow {
       },
     });
 
-    void this.win.loadFile(htmlPath);
+    void this.win.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(preferencesHtml)}`
+    );
+
     if (!app.isPackaged) {
       this.win.webContents.openDevTools({ mode: 'detach' });
     }
+
     this.win.once('ready-to-show', () => {
       this.win?.show();
       this.win?.focus();
     });
+
     this.win.on('closed', () => {
       this.win = null;
     });

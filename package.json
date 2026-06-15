@@ -8,8 +8,9 @@
   },
   "main": "app/dist/main.js",
   "scripts": {
-    "copy-assets": "node -e \"const fs=require('fs');fs.cpSync('app/assets','app/dist/assets',{recursive:true});fs.copyFileSync('app/preferences.html','app/dist/preferences.html')\"",
-    "build": "tsc && npm run copy-assets",
+    "embed-html": "node app/scripts/embed-html.mjs",
+    "copy-assets": "node -e \"const fs=require('fs');fs.cpSync('app/assets','app/dist/assets',{recursive:true})\"",
+    "build": "npm run embed-html && tsc && npm run copy-assets",
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder"
@@ -67,7 +68,7 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.3",
     "electron": "^42.3.3",
     "electron-builder": "^26.8.1",
     "sharp": "^0.34.5",
