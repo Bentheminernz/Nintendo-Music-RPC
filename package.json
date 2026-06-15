@@ -1,6 +1,6 @@
 {
   "name": "nintendo-music-rpc-bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Electron bridge for Nintendo Music Discord Rich Presence.",
   "repository": {
     "type": "git",
@@ -13,12 +13,23 @@
     "build": "npm run embed-html && tsc && npm run copy-assets",
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:linux": "docker run --rm -ti -v ${PWD}:/project -w /project electronuserland/builder npm run dist -- --linux"
   },
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
     "productName": "Nintendo Music RPC",
     "copyright": "Copyright © 2026 Ben Lawrence",
+    "extraResources": [
+      {
+        "from": "app/dist/preferences.html",
+        "to": "app/dist/preferences.html"
+      },
+      {
+        "from": "app/dist/preload-prefs.js",
+        "to": "app/dist/preload-prefs.js"
+      }
+    ],
     "mac": {
       "identity": null,
       "icon": "app/assets/icon.icns",
@@ -63,14 +74,14 @@
     "@types/express": "^5.0.6",
     "@types/ws": "^8.18.1",
     "discord-rpc": "^4.0.1",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "express": "^5.2.1",
     "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
-    "electron": "^42.3.3",
-    "electron-builder": "^26.8.1",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.2",
     "sharp": "^0.34.5",
     "typescript": "^6.0.3"
   }

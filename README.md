@@ -14,7 +14,7 @@ Two components work together:
 1. Download and run the **Nintendo Music RPC** desktop app from the [latest release](https://github.com/Bentheminernz/Nintendo-Music-RPC/releases/latest).
 2. Install the browser extension
     - [Chrome](https://chromewebstore.google.com/detail/nintendo-music-discord-rp/boiekifeicdcjjjfeinllgcmnmmbgegf)
-    - Firefox (coming soon)
+    - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/nintendo-music-discord-rpc/)
 3. Open Nintendo Music and start playing — your status will update automatically.
 
 ## Development

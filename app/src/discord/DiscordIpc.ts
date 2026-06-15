@@ -42,7 +42,15 @@ export class DiscordIpc {
         return;
       }
 
-      const socket = net.createConnection(getDiscordIpcPath());
+      const ipcPath = getDiscordIpcPath();
+      if (!ipcPath) {
+        warn('No Discord IPC path found.');
+        this.events.onDisconnect?.();
+        setTimeout(() => this.connect().catch(() => {}), RECONNECT_DELAY_MS);
+        resolve();
+        return;
+      }
+      const socket = net.createConnection(ipcPath);
       this.socket = socket;
       this.buffer = Buffer.alloc(0);
 

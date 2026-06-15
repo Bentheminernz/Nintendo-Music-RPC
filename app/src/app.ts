@@ -164,6 +164,7 @@ export class RichPresenceApp {
     log('Tab disconnected — clearing Discord activity.');
     this.clearHeartbeat();
     this.tabConnected = false;
+    this.currentTrack = null;
     this.discord?.clearActivity();
     this.tray.update();
     this.notify(null);
@@ -185,6 +186,7 @@ export class RichPresenceApp {
     this.heartbeatTimer = null;
     log(`No ping from extension for ${HEARTBEAT_TIMEOUT_MS / 1000}s — clearing Discord activity.`);
     this.tabConnected = false;
+    this.currentTrack = null;
     this.discord?.clearActivity();
     this.tray.update();
     this.notify(null);

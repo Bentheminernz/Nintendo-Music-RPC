@@ -86,13 +86,13 @@ export class TrayManager {
         label: 'Open Nintendo Music',
         click: () => shell.openExternal('https://music.nintendo.com'),
       },
-      // {
-      //   label: 'Download Firefox Extension',
-      //   click: () =>
-      //     shell.openExternal(
-      //       'https://example.com',
-      //     ),
-      // },
+      {
+        label: 'Download Firefox Extension',
+        click: () =>
+          shell.openExternal(
+            'https://addons.mozilla.org/en-US/firefox/addon/nintendo-music-discord-rpc/',
+          ),
+      },
       {
         label: 'Download Chrome Extension',
         click: () =>

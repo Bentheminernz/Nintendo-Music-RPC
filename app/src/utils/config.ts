@@ -5,8 +5,14 @@ export const PORT = 17891;
 export const CLIENT_ID = '1487315634667782184';
 
 /** Path to Discord's local IPC socket / named pipe. */
-export function getDiscordIpcPath(): string {
-  if (process.platform === 'win32') return '\\\\.\\pipe\\discord-ipc-0';
+export function getDiscordIpcPath(): string | null {
+  if (process.platform === 'win32') {
+    return '\\\\.\\pipe\\discord-ipc-0';
+  }
   const base = process.env.XDG_RUNTIME_DIR || process.env.TMPDIR || '/tmp';
-  return `${base}/discord-ipc-0`;
+  for (let i = 0; i < 10; i++) {
+    const path = `${base}/discord-ipc-${i}`;
+    if (require('fs').existsSync(path)) return path;
+  }
+  return null;
 }
