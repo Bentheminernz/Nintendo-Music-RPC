@@ -10,7 +10,7 @@ import type { Preferences } from './utils/preferences';
 import { PreferencesWindow } from './utils/PreferencesWindow';
 import { createBridgeServer } from './BridgerServer';
 import type { BridgeState, Track, TrackPayload } from './types';
-import { RpcImageSource } from './types';
+import { RpcImageSource, SPECIAL_PLAYLIST_IDS, SPECIAL_PLAYLISTS } from './types';
 
 const { log, warn } = createLogger('app');
 
@@ -167,12 +167,15 @@ export class RichPresenceApp {
   }
 
   private async fetchPlaylistData(playlistId: string): Promise<void> {
-    if (playlistId === 'favorite') {
-      log('Skipping fetch for favorite playlist.');
-      this.playlistCache.set(playlistId, { imageUrl: 'star', name: 'Favorites' });
+    const special = Object.values(SPECIAL_PLAYLIST_IDS).includes(playlistId as SPECIAL_PLAYLIST_IDS)
+      ? SPECIAL_PLAYLISTS[playlistId as SPECIAL_PLAYLIST_IDS]
+      : undefined;
+    if (special) {
+      log(`Skipping fetch for ${special.name} playlist.`);
+      this.playlistCache.set(playlistId, special);
       if (this.currentTrack?.playlist?.playlistId === playlistId) {
-        this.currentTrack.playlist.playlistImageURL = 'star';
-        this.currentTrack.playlist.playlistName = 'Favorites';
+        this.currentTrack.playlist.playlistImageURL = special.imageUrl;
+        this.currentTrack.playlist.playlistName = special.name;
         this.updateActivity();
       }
       return;
@@ -264,7 +267,7 @@ export class RichPresenceApp {
       return;
     }
 
-    const opts = this.prefs?.getAll() ?? { splatoonDetailedRpc: true, largeRpcImage: RpcImageSource.Track, smallRpcImage: RpcImageSource.Game };
+    const opts = this.prefs?.getAll() ?? { splatoonDetailedRpc: true, largeRpcImage: RpcImageSource.Track, smallRpcImage: RpcImageSource.Game, listeningStatusTag: RpcImageSource.Track };
     log('Updating Discord activity.', { track: track.track.name, opts });
     this.discord.setActivity(buildActivity(track, opts));
   }

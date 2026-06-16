@@ -4,6 +4,8 @@ export enum RpcImageSource {
   Playlist = 'playlist',
 }
 
+export { RpcImageSource as ListeningStatusTag };
+
 /** A track as tracked internally by the bridge. */
 export interface Track {
   playlist?: {
@@ -105,3 +107,13 @@ export interface BridgeState {
 export const SPLATOON_GAME_ID = '6338c15d-3f36-47f0-aa47-e46d69ff50f5';
 export const SPLATOON_2_GAME_ID = 'f3a39d36-519f-4839-87d3-ec70c0298b6a';
 export const SPLATOON_3_GAME_ID = '5bd86aee-7a21-4aac-a894-bb3f98d0cc91';
+
+export enum SPECIAL_PLAYLIST_IDS {
+  Favorite = 'favorite',
+  SearchHistory = 'search_history',
+}
+
+export const SPECIAL_PLAYLISTS: Record<SPECIAL_PLAYLIST_IDS, { imageUrl: string; name: string }> = {
+  [SPECIAL_PLAYLIST_IDS.Favorite]: { imageUrl: 'star', name: 'Favorites' },
+  [SPECIAL_PLAYLIST_IDS.SearchHistory]: { imageUrl: 'search', name: 'Search Results' },
+};

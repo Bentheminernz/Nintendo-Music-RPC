@@ -173,6 +173,18 @@
             <option value="playlist">Playlist</option>
           </select>
         </div>
+
+        <div class="setting-row" style="border-top: 1px solid #f0f0f0">
+          <div class="setting-info">
+            <label for="listening-status-tag">Listening status tag</label>
+            <p>Tag used in the "Listening to" status in Discord. If the selected image source is unavailable, it will fall back to track info.</p>
+          </div>
+          <select class="setting-select" id="listening-status-tag">
+            <option value="track">Track</option>
+            <option value="game">Game</option>
+            <option value="playlist">Playlist</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -185,11 +197,13 @@
       const largeSubtextEl = document.getElementById('large-subtext');
       const smallRpcImageEl = document.getElementById('small-rpc-image');
       const smallSubtextEl = document.getElementById('small-subtext');
+      const listeningStatusTagEl = document.getElementById('listening-status-tag');
 
       function render(data) {
         splatoonDetailEl.checked = data.splatoonDetailedRpc;
         largeRpcImageEl.value = data.largeRpcImage ?? 'track';
         smallRpcImageEl.value = data.smallRpcImage ?? 'game';
+        listeningStatusTagEl.value = data.listeningStatusTag ?? 'track';
       }
 
       prefsApi.getAll().then(render);
@@ -222,6 +236,10 @@
           smallRpcImageEl.style.color = '#888';
         }
       });
+
+      listeningStatusTagEl.addEventListener('change', () => {
+        prefsApi.set('listeningStatusTag', listeningStatusTagEl.value);
+       });
     </script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID } from '../types';
+import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, ListeningStatusTag } from '../types';
 import { createLogger } from '../utils/logger';
 
 const { log } = createLogger('activity');
@@ -10,6 +10,7 @@ export interface ActivityOptions {
   splatoonDetailedRpc: boolean;
   largeRpcImage: RpcImageSource;
   smallRpcImage: RpcImageSource;
+  listeningStatusTag: ListeningStatusTag;
 }
 
 function resolveImageUrl(source: RpcImageSource, track: Track): string | null {
@@ -20,6 +21,14 @@ function resolveImageUrl(source: RpcImageSource, track: Track): string | null {
   }
 }
 
+function resolveListeningStatusTag(source: ListeningStatusTag, track: Track): string | null {
+  switch (source) {
+    case ListeningStatusTag.Game: return track.game.gameName;
+    case ListeningStatusTag.Track: return track.track.name;
+    case ListeningStatusTag.Playlist: return track.playlist?.playlistName ?? track.track.name;
+  }
+}
+
 export function buildActivity(track: Track, opts: ActivityOptions): DiscordActivity {
   const gameName = track.game.gameName || 'Nintendo Music';
   const notation = track.track.rightNotation ? track.track.rightNotation.replace('©', '').trim() : null;
@@ -27,6 +36,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
 
   let details: string;
   let state: string;
+  let statusTagLabel: string;
 
   if (isSplatoon && opts.splatoonDetailedRpc) {
     const parts = track.track.name.split('/');
@@ -35,20 +45,25 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
       const artist = parts[1].trim();
       details = title;
       state = `${artist} · ${gameName}`;
+      statusTagLabel = opts.listeningStatusTag === ListeningStatusTag.Track
+        ? title
+        : resolveListeningStatusTag(opts.listeningStatusTag, track) ?? title;
       log('Using Splatoon detailed format.', { details, state });
     } else {
       details = track.track.name;
       state = notation ? `${notation} · ${gameName}` : `From ${gameName}`;
+      statusTagLabel = resolveListeningStatusTag(opts.listeningStatusTag, track) ?? details;
       log('Using Splatoon detailed format (no artist separator found, using standard).', { details, state });
     }
   } else {
     details = track.track.name;
     state = notation ? `${notation} · ${gameName}` : `From ${gameName}`;
+    statusTagLabel = resolveListeningStatusTag(opts.listeningStatusTag, track) ?? details;
     log('Using standard format.', { details, state, isSplatoon });
   }
 
   const activity: DiscordActivity = {
-    name: `Nintendo Music - ${truncate(details)}`,
+    name: `Nintendo Music - ${truncate(statusTagLabel)}`,
     details: details,
     state: state,
     type: 2,
