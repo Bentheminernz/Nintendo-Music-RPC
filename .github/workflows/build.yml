@@ -22,7 +22,9 @@ jobs:
             artifact-name: win
           - os: ubuntu-latest
             platform: --linux
-            artifact-glob: dist/*.AppImage
+            artifact-glob: |
+              dist/*.AppImage
+              dist/*.flatpak
             artifact-name: linux
 
     runs-on: ${{ matrix.os }}
@@ -37,6 +39,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Flatpak tools (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Embed HTML
         run: node app/scripts/embed-html.mjs
