@@ -14,7 +14,7 @@
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder",
-    "dist:linux": "docker run --rm -ti -v ${PWD}:/project -w /project electronuserland/builder npm run dist -- --linux"
+    "dist:linux": "docker run --rm -ti -v ${PWD}:/project -w /project electronuserland/builder bash -c 'apt-get update -qq && apt-get install -y -qq flatpak flatpak-builder && npm run dist -- --linux'"
   },
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
