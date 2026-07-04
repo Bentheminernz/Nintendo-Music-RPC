@@ -22,10 +22,6 @@
     "copyright": "Copyright © 2026 Ben Lawrence",
     "extraResources": [
       {
-        "from": "app/dist/preferences.html",
-        "to": "app/dist/preferences.html"
-      },
-      {
         "from": "app/dist/preload-prefs.js",
         "to": "app/dist/preload-prefs.js"
       }
