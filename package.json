@@ -15,8 +15,7 @@
     "build": "npm run embed-html && tsc && npm run copy-assets",
     "watch": "tsc --watch",
     "start": "npm run build && electron .",
-    "dist": "npm run build && electron-builder",
-    "dist:linux": "docker run --rm -ti -v ${PWD}:/project -w /project electronuserland/builder bash -c 'apt-get update -qq && apt-get install -y -qq flatpak flatpak-builder && npm run dist -- --linux'"
+    "dist": "npm run build && electron-builder"
   },
   "build": {
     "appId": "nz.benlawrence.nintendo-music-rpc-bridge",
@@ -62,21 +61,7 @@
             "x64",
             "arm64"
           ]
-        },
-        {
-          "target": "flatpak",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
         }
-      ]
-    },
-    "flatpak": {
-      "runtimeVersion": "23.08",
-      "baseVersion": "23.08",
-      "extraFlatpakBuilderArgs": [
-        "--user"
       ]
     },
     "publish": {
