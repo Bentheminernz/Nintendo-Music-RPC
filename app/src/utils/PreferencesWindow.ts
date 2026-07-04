@@ -17,7 +17,9 @@ export class PreferencesWindow {
       return;
     }
 
-    const preloadPath = path.join(__dirname, '..', 'preload-prefs.js');
+    const preloadPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'app', 'dist', 'preload-prefs.js')
+      : path.join(__dirname, '..', 'preload-prefs.js');
 
     log('Opening preferences window.', {
       preloadPath,
