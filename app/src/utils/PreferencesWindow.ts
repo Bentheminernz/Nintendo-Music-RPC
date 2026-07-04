@@ -34,8 +34,10 @@ export class PreferencesWindow {
 
     this.win = new BrowserWindow({
       width: 400,
-      height: 280,
-      resizable: false,
+      height: 350,
+      minWidth: 400,
+      minHeight: 350,
+      resizable: true,
       minimizable: false,
       maximizable: false,
       title: 'Preferences',

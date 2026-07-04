@@ -1,4 +1,4 @@
-import { Track, DiscordActivity, DiscordActivityButton, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID } from '../types';
+import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, ListeningStatusTag } from '../types';
 import { createLogger } from '../utils/logger';
 
 const { log } = createLogger('activity');
@@ -8,6 +8,27 @@ const truncate = (text: string, max = 15): string =>
 
 export interface ActivityOptions {
   splatoonDetailedRpc: boolean;
+  largeRpcImage: RpcImageSource;
+  smallRpcImage: RpcImageSource;
+  listeningStatusTag: ListeningStatusTag;
+}
+
+function resolveImageUrl(source: RpcImageSource, track: Track): string | null {
+  switch (source) {
+    case RpcImageSource.Game: return track.game.gameImage;
+    case RpcImageSource.Track: return track.track.thumbnailURL;
+    case RpcImageSource.Playlist: return track.playlist?.playlistImageURL ?? track.track.thumbnailURL;
+    default: return null;
+  }
+}
+
+function resolveListeningStatusTag(source: ListeningStatusTag, track: Track): string | null {
+  switch (source) {
+    case ListeningStatusTag.Game: return track.game.gameName;
+    case ListeningStatusTag.Track: return track.track.name;
+    case ListeningStatusTag.Playlist: return track.playlist?.playlistName ?? track.track.name;
+    default: return null;
+  }
 }
 
 export function buildActivity(track: Track, opts: ActivityOptions): DiscordActivity {
@@ -17,6 +38,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
 
   let details: string;
   let state: string;
+  let statusTagLabel: string;
 
   if (isSplatoon && opts.splatoonDetailedRpc) {
     const parts = track.track.name.split('/');
@@ -25,20 +47,25 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
       const artist = parts[1].trim();
       details = title;
       state = `${artist} · ${gameName}`;
+      statusTagLabel = opts.listeningStatusTag === ListeningStatusTag.Track
+        ? title
+        : resolveListeningStatusTag(opts.listeningStatusTag, track) ?? title;
       log('Using Splatoon detailed format.', { details, state });
     } else {
       details = track.track.name;
       state = notation ? `${notation} · ${gameName}` : `From ${gameName}`;
+      statusTagLabel = resolveListeningStatusTag(opts.listeningStatusTag, track) ?? details;
       log('Using Splatoon detailed format (no artist separator found, using standard).', { details, state });
     }
   } else {
     details = track.track.name;
     state = notation ? `${notation} · ${gameName}` : `From ${gameName}`;
+    statusTagLabel = resolveListeningStatusTag(opts.listeningStatusTag, track) ?? details;
     log('Using standard format.', { details, state, isSplatoon });
   }
 
   const activity: DiscordActivity = {
-    name: `Nintendo Music - ${truncate(details)}`,
+    name: `Nintendo Music - ${truncate(statusTagLabel)}`,
     details: details,
     state: state,
     type: 2,
@@ -58,20 +85,28 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
     };
   }
 
-  if (track.track.thumbnailURL) {
-    activity.assets = {
-      large_image: track.track.thumbnailURL,
-      large_text: track.paused ? `${gameName} · ⏸ Paused` : `${gameName}`,
-    };
-  }
+  const largeImageUrl = resolveImageUrl(opts.largeRpcImage, track);
+  const smallImageUrl = resolveImageUrl(opts.smallRpcImage, track);
 
-  if (track.game.gameImage) {
+  const largeText =
+    opts.largeRpcImage === RpcImageSource.Playlist ? (track.playlist?.playlistName ?? track.track.name)
+    : opts.largeRpcImage === RpcImageSource.Track ? track.track.name
+    : track.paused ? `${gameName} · ⏸ Paused` : gameName;
+
+  const smallText =
+    opts.smallRpcImage === RpcImageSource.Playlist ? (track.playlist?.playlistName ?? track.track.name)
+    : opts.smallRpcImage === RpcImageSource.Track ? track.track.name
+    : track.paused ? `${gameName} · ⏸ Paused` : gameName;
+
+  if (largeImageUrl) {
     activity.assets = {
-      large_image: activity.assets?.large_image || '',
-      large_text: activity.assets?.large_text || '',
-      small_image: track.game.gameImage,
-      small_text: gameName,
+      large_image: largeImageUrl,
+      large_text: largeText,
     };
+    if (smallImageUrl && smallImageUrl !== largeImageUrl) {
+      activity.assets.small_image = smallImageUrl;
+      activity.assets.small_text = smallText;
+    }
   }
 
   const buttons: DiscordActivityButton[] = [];

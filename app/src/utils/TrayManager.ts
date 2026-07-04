@@ -87,6 +87,10 @@ export class TrayManager {
         click: () => shell.openExternal('https://music.nintendo.com'),
       },
       {
+        label: 'Open GitHub Repository',
+        click: () => shell.openExternal('https://github.com/bentheminernz/nintendo-music-rpc'),
+      },
+      {
         label: 'Download Firefox Extension',
         click: () =>
           shell.openExternal(

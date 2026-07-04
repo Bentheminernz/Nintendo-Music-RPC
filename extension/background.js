@@ -52,6 +52,9 @@
     lastForwardedTrackName = track.name;
 
     const payload = {
+      playlist: {
+        playlistId: typeof track.playlistId === 'string' ? track.playlistId : null,
+      },
       game: {
         gameName: typeof track.gameName === 'string' ? track.gameName : null,
         gameId: typeof track.gameId === 'string' ? track.gameId : null,

@@ -2,15 +2,22 @@ import { app } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createLogger } from './logger';
+import { ListeningStatusTag, RpcImageSource } from '../types';
 
 const { log, warn } = createLogger('preferences');
 
 export interface Preferences {
   splatoonDetailedRpc: boolean;
+  largeRpcImage: RpcImageSource;
+  smallRpcImage: RpcImageSource;
+  listeningStatusTag: ListeningStatusTag;
 }
 
 const DEFAULTS: Preferences = {
   splatoonDetailedRpc: true,
+  largeRpcImage: RpcImageSource.Track,
+  smallRpcImage: RpcImageSource.Game,
+  listeningStatusTag: ListeningStatusTag.Track,
 };
 
 export class PreferencesStore {

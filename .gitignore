@@ -143,4 +143,4 @@ vite.config.ts.timestamp-*
 .vite/
 .DS_Store
 extension.zip
-preferencesHtml.ts
+*preferencesHtml.ts

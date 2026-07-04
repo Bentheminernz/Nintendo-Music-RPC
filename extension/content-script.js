@@ -1,5 +1,6 @@
 (() => {
-  const STORAGE_KEY = 'znba_track_logs';
+  const TRACK_LOG_KEY = 'znba_track_logs';
+  const PLAY_QUEUE_KEY = 'znba_play_queue';
   const POLL_INTERVAL_MS = 3000;
 
   let lastSentTrackName = null;
@@ -29,49 +30,57 @@
   // ── localStorage ─────────────────────────────────────────────────────────────
 
   function readCurrentTrack() {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      log(`No ${STORAGE_KEY} entry in localStorage yet.`);
+    const rawTrackLog = window.localStorage.getItem(TRACK_LOG_KEY);
+    const rawPlayQueue = window.localStorage.getItem(PLAY_QUEUE_KEY);
+    if (!rawTrackLog) {
+      log(`No ${TRACK_LOG_KEY} entry in localStorage yet.`);
       return null;
     }
 
     let trackLogs;
+    let playQueue = {};
     try {
-      trackLogs = JSON.parse(raw);
+      trackLogs = JSON.parse(rawTrackLog);
+      if (rawPlayQueue) {
+        playQueue = JSON.parse(rawPlayQueue);
+      }
     } catch {
-      warn(`Failed to parse ${STORAGE_KEY}.`);
+      warn('Failed to parse track log or play queue from localStorage.', { rawTrackLog, rawPlayQueue });
       return null;
     }
 
-    const first = Array.isArray(trackLogs) ? trackLogs[0] : null;
-    if (!first || typeof first.name !== 'string') {
-      warn('No readable track name in storage.', first);
+    const firstTrack = Array.isArray(trackLogs) ? trackLogs[0] : null;
+    if (!firstTrack || typeof firstTrack.name !== 'string') {
+      warn('No readable track name in storage.', firstTrack);
       return null;
     }
 
     const thumbnailURL =
-      [first.thumbnailURL, first.game?.thumbnailURL, first.media?.thumbnailURL]
+      [firstTrack.thumbnailURL, firstTrack.game?.thumbnailURL, firstTrack.media?.thumbnailURL]
         .find(t => typeof t === 'string' && t.length > 0) ?? null;
 
-    const gameName = typeof first.game?.name === 'string'
-      ? first.game.name
-      : first.playlist?.name ?? null;
+    const gameName = typeof firstTrack.game?.name === 'string'
+      ? firstTrack.game.name
+      : firstTrack.playlist?.name ?? null;
 
-    const gameId = first.game?.id ?? null;
-    const gameImage = first.game?.thumbnailURL ?? null;
+    const gameId = firstTrack.game?.id ?? null;
+    const gameImage = firstTrack.game?.thumbnailURL ?? null;
 
-    const rightNotation = typeof first.rightNotation === 'string' ? first.rightNotation : null;
-    const formalHardware = first.game?.formalHardware ?? null
+    const rightNotation = typeof firstTrack.rightNotation === 'string' ? firstTrack.rightNotation : null;
+    const formalHardware = firstTrack.game?.formalHardware ?? null;
+
+    const playlistId = playQueue.playlistId ?? null;
 
     return {
-      name: first.name,
-      id: typeof first.id === 'string' ? first.id : null,
+      name: firstTrack.name,
+      id: typeof firstTrack.id === 'string' ? firstTrack.id : null,
       thumbnailURL,
       gameName,
       gameId,
       rightNotation,
       gameImage,
       formalHardware,
+      playlistId,
     };
   }
 

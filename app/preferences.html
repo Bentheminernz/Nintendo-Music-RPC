@@ -113,13 +113,29 @@
       .toggle input:checked + .slider::before {
         transform: translateX(16px);
       }
+
+      .setting-select {
+        font-size: 12px;
+        font-family: inherit;
+        color: #1a1a1a;
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 4px 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .setting-select:focus {
+        outline: none;
+        border-color: #e4000f;
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>Preferences</h1>
       <div class="card">
-
         <div class="setting-row">
           <div class="setting-info">
             <label for="splatoon-detail">Splatoon detailed RPC</label>
@@ -131,6 +147,45 @@
           </label>
         </div>
       </div>
+
+      <div class="card" style="margin-top: 16px">
+        <div class="setting-row">
+          <div class="setting-info">
+            <label for="large-rpc-image">Large image</label>
+            <p>Image shown large in the Discord Rich Presence</p>
+            <p id="large-subtext"></p>
+          </div>
+          <select class="setting-select" id="large-rpc-image">
+            <option value="track">Track</option>
+            <option value="game">Game</option>
+            <option value="playlist">Playlist</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <label for="small-rpc-image">Small image</label>
+            <p>Image shown small in the Discord Rich Presence</p>
+            <p id="small-subtext"></p>
+          </div>
+          <select class="setting-select" id="small-rpc-image">
+            <option value="track">Track</option>
+            <option value="game">Game</option>
+            <option value="playlist">Playlist</option>
+          </select>
+        </div>
+
+        <div class="setting-row" style="border-top: 1px solid #f0f0f0">
+          <div class="setting-info">
+            <label for="listening-status-tag">Listening status tag</label>
+            <p>Tag used in the "Listening to" status in Discord. If the selected image source is unavailable, it will fall back to track info.</p>
+          </div>
+          <select class="setting-select" id="listening-status-tag">
+            <option value="track">Track</option>
+            <option value="game">Game</option>
+            <option value="playlist">Playlist</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -138,9 +193,17 @@
       const prefsApi = window.prefs;
 
       const splatoonDetailEl = document.getElementById('splatoon-detail');
+      const largeRpcImageEl = document.getElementById('large-rpc-image');
+      const largeSubtextEl = document.getElementById('large-subtext');
+      const smallRpcImageEl = document.getElementById('small-rpc-image');
+      const smallSubtextEl = document.getElementById('small-subtext');
+      const listeningStatusTagEl = document.getElementById('listening-status-tag');
 
       function render(data) {
         splatoonDetailEl.checked = data.splatoonDetailedRpc;
+        largeRpcImageEl.value = data.largeRpcImage ?? 'track';
+        smallRpcImageEl.value = data.smallRpcImage ?? 'game';
+        listeningStatusTagEl.value = data.listeningStatusTag ?? 'track';
       }
 
       prefsApi.getAll().then(render);
@@ -149,6 +212,34 @@
       splatoonDetailEl.addEventListener('change', () => {
         prefsApi.set('splatoonDetailedRpc', splatoonDetailEl.checked);
       });
+
+      largeRpcImageEl.addEventListener('change', () => {
+        prefsApi.set('largeRpcImage', largeRpcImageEl.value);
+
+        if (largeRpcImageEl.value === 'playlist') {
+          largeSubtextEl.textContent = 'This does not currently support Personal Playlists. Large image will fall back to track info for Personal Playlists.';
+          largeSubtextEl.style.color = '#e4000f';
+        } else {
+          largeSubtextEl.textContent = '';
+          largeRpcImageEl.style.color = '';
+        }
+      });
+
+      smallRpcImageEl.addEventListener('change', () => {
+        prefsApi.set('smallRpcImage', smallRpcImageEl.value);
+
+        if (smallRpcImageEl.value === 'playlist') {
+          smallSubtextEl.textContent = 'This does not currently support Personal Playlists. Small image will fall back to track info for Personal Playlists.';
+          smallSubtextEl.style.color = '#e4000f';
+        } else {
+          smallSubtextEl.textContent = '';
+          smallRpcImageEl.style.color = '';
+        }
+      });
+
+      listeningStatusTagEl.addEventListener('change', () => {
+        prefsApi.set('listeningStatusTag', listeningStatusTagEl.value);
+       });
     </script>
   </body>
 </html>

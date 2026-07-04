@@ -10,6 +10,7 @@ import type { Preferences } from './utils/preferences';
 import { PreferencesWindow } from './utils/PreferencesWindow';
 import { createBridgeServer } from './BridgerServer';
 import type { BridgeState, Track, TrackPayload } from './types';
+import { RpcImageSource, SPECIAL_PLAYLIST_IDS, SPECIAL_PLAYLISTS } from './types';
 
 const { log, warn } = createLogger('app');
 
@@ -21,6 +22,7 @@ export class RichPresenceApp {
   private currentTrack: Track | null = null;
   private rpcEnabled = true;
   private tabConnected = true;
+  private readonly playlistCache = new Map<string, { imageUrl: string; name: string }>();
 
   private discord: DiscordIpc | null = null;
   private server: Server | null = null;
@@ -119,6 +121,8 @@ export class RichPresenceApp {
       return;
     }
 
+    const playlistId = payload.playlist?.playlistId || null;
+
     this.currentTrack = {
       track: {
         name: payload.track.trackName,
@@ -132,6 +136,11 @@ export class RichPresenceApp {
         gameImage: payload.game.gameImage || null,
         formalHardware: payload.game.formalHardware || null,
       },
+      playlist: {
+        playlistId,
+        playlistImageURL: playlistId ? (this.playlistCache.get(playlistId)?.imageUrl ?? null) : null,
+        playlistName: playlistId ? (this.playlistCache.get(playlistId)?.name ?? null) : null,
+      },
       currentTime: typeof payload.currentTime === 'number' ? payload.currentTime : null,
       duration: typeof payload.duration === 'number' ? payload.duration : null,
       paused: typeof payload.paused === 'boolean' ? payload.paused : null,
@@ -140,6 +149,7 @@ export class RichPresenceApp {
 
     log('Track updated.', {
       trackName: payload.track.trackName,
+      playlistId,
       currentTime: payload.currentTime,
       duration: payload.duration,
       paused: payload.paused,
@@ -150,6 +160,54 @@ export class RichPresenceApp {
     this.tray.update();
     this.updateActivity();
     this.notify(this.currentTrack);
+
+    if (playlistId && !this.playlistCache.has(playlistId)) {
+      void this.fetchPlaylistData(playlistId);
+    }
+  }
+
+  private async fetchPlaylistData(playlistId: string): Promise<void> {
+    const special = Object.values(SPECIAL_PLAYLIST_IDS).includes(playlistId as SPECIAL_PLAYLIST_IDS)
+      ? SPECIAL_PLAYLISTS[playlistId as SPECIAL_PLAYLIST_IDS]
+      : undefined;
+    if (special) {
+      log(`Skipping fetch for ${special.name} playlist.`);
+      this.playlistCache.set(playlistId, special);
+      if (this.currentTrack?.playlist?.playlistId === playlistId) {
+        this.currentTrack.playlist.playlistImageURL = special.imageUrl;
+        this.currentTrack.playlist.playlistName = special.name;
+        this.updateActivity();
+      }
+      return;
+    }
+
+    try {
+      const url = `https://api.m.nintendo.com/catalog/officialPlaylists/${playlistId}?country=NZ&lang=en-US`;
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        warn('Failed to fetch playlist data.', { playlistId, status: res.status, statusText: res.statusText });
+        return;
+      }
+
+      const data = await res.json() as { thumbnailURL?: string; name?: string };
+	
+      const imageUrl = typeof data?.thumbnailURL === 'string' ? data.thumbnailURL : null;
+      const name = typeof data?.name === 'string' ? data.name : null;
+      if (!imageUrl || !name) {
+        warn('Playlist data missing thumbnailURL or name.', { playlistId, data });
+        return;
+      }
+
+      this.playlistCache.set(playlistId, { imageUrl, name });
+      if (this.currentTrack?.playlist?.playlistId === playlistId) {
+        this.currentTrack.playlist.playlistImageURL = imageUrl;
+        this.currentTrack.playlist.playlistName = name;
+        this.updateActivity();
+      }
+    } catch (err) {
+      warn('Failed to fetch playlist data.', { playlistId, err });
+    }
   }
 
   private handleConnect(): void {
@@ -218,7 +276,7 @@ export class RichPresenceApp {
       return;
     }
 
-    const opts = this.prefs?.getAll() ?? { splatoonDetailedRpc: true };
+    const opts = this.prefs?.getAll() ?? { splatoonDetailedRpc: true, largeRpcImage: RpcImageSource.Track, smallRpcImage: RpcImageSource.Game, listeningStatusTag: RpcImageSource.Track };
     log('Updating Discord activity.', { track: track.track.name, opts });
     this.discord.setActivity(buildActivity(track, opts));
   }
