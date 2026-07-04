@@ -2,6 +2,7 @@
   "name": "nintendo-music-rpc-bridge",
   "version": "1.1.1",
   "description": "Electron bridge for Nintendo Music Discord Rich Presence.",
+  "author": "Ben Lawrence",
   "repository": {
     "type": "git",
     "url": "https://github.com/Bentheminernz/Nintendo-Music-RPC.git"
@@ -51,6 +52,9 @@
     },
     "linux": {
       "icon": "extension/icons/icon.png",
+      "category": "AudioVideo",
+      "desktopName": "nintendo-music-rpc.desktop",
+      "synopsis": "Discord Rich Presence bridge for Nintendo Music",
       "target": [
         {
           "target": "AppImage",
@@ -67,6 +71,10 @@
           ]
         }
       ]
+    },
+    "flatpak": {
+      "runtimeVersion": "23.08",
+      "baseVersion": "23.08"
     },
     "publish": {
       "provider": "github",
