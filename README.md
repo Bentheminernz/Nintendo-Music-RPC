@@ -17,6 +17,11 @@ Two components work together:
     - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/nintendo-music-discord-rpc/)
 3. Open Nintendo Music and start playing — your status will update automatically.
 
+## Support my work!
+Hi there, if you like Nintendo Music RPC, or any of my other works and are in a position where you can support me financially then I'd be unbelievably grateful if you donated to my [GitHub Sponsors](https://github.com/sponsors/bentheminernz) or [Ko-Fi](https://ko-fi.com/benlawrencenz), it would go a long way!
+<br>If you're unable to, please don't!!! Sharing my work and starring it still goes a long way.
+<br>Thank You! 💛
+
 ## Development
 
 ### Prerequisites

@@ -83,6 +83,19 @@ export class TrayManager {
       },
       { type: 'separator' },
       {
+        label: 'Support the Project',
+        submenu: [
+          {
+            label: 'Donate via GitHub Sponsors',
+            click: () => shell.openExternal('https://github.com/sponsors/bentheminernz'),
+          },
+          {
+            label: 'Donate via Ko-fi',
+            click: () => shell.openExternal('https://ko-fi.com/benlawrencenz'),
+          },
+        ],
+      },
+      {
         label: 'Open Nintendo Music',
         click: () => shell.openExternal('https://music.nintendo.com'),
       },

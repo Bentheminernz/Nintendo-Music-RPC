@@ -64,6 +64,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
     statusTagLabel = resolveListeningStatusTag(opts.listeningStatusTag, track) ?? details;
     log('Using standard format.', { details, state, isSplatoon });
   }
+  
   let formedName: string | undefined = undefined;
   switch (opts.statusLabelPlacement) {
     case StatusLabelPlacement.Own:
