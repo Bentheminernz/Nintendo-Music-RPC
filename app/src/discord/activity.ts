@@ -69,10 +69,10 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
     formedName = "Nintendo Music";
       }
   if (opts.statusNmForm === "none") {
-    formedName = `${truncate(statusTagLabel)}`;
+    formedName = statusTagLabel;
   }
   if (opts.statusNmForm === "left") {
-    formedName = `Nintendo Music - ${truncate(statusTagLabel)}`;
+    formedName = `Nintendo Music - ${statusTagLabel}`;
   }
   if (opts.statusNmForm === "right") {
     formedName = `${statusTagLabel} - Nintendo Music`;
