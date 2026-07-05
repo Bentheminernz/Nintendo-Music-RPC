@@ -66,10 +66,10 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
   }
   let formedName: string | undefined = undefined;
   switch (opts.statusLabelPlacement) {
-    case StatusLabelPlacement.Only:
+    case StatusLabelPlacement.Own:
       formedName = "Nintendo Music";
       break;
-    case StatusLabelPlacement.None:
+    case StatusLabelPlacement.Hidden:
       formedName = `${truncate(statusTagLabel)}`;
       break;
     case StatusLabelPlacement.Left:
