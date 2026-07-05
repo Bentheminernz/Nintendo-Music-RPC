@@ -2,7 +2,7 @@ import { app } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createLogger } from './logger';
-import { ListeningStatusTag, RpcImageSource } from '../types';
+import { ListeningStatusTag, RpcImageSource, StatusNmForm } from '../types';
 
 const { log, warn } = createLogger('preferences');
 
@@ -11,6 +11,7 @@ export interface Preferences {
   largeRpcImage: RpcImageSource;
   smallRpcImage: RpcImageSource;
   listeningStatusTag: ListeningStatusTag;
+  statusNmForm: StatusNmForm;
 }
 
 const DEFAULTS: Preferences = {
@@ -18,6 +19,7 @@ const DEFAULTS: Preferences = {
   largeRpcImage: RpcImageSource.Track,
   smallRpcImage: RpcImageSource.Game,
   listeningStatusTag: ListeningStatusTag.Track,
+  statusNmForm: StatusNmForm.Left,
 };
 
 export class PreferencesStore {
