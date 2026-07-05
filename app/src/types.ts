@@ -6,6 +6,15 @@ export enum RpcImageSource {
 
 export { RpcImageSource as ListeningStatusTag };
 
+export enum FormNm {
+  Left = 'left',
+  Right = 'right',
+  None = 'none',
+  Only = 'only',
+}
+
+export { FormNm as StatusNmForm }
+
 /** A track as tracked internally by the bridge. */
 export interface Track {
   playlist?: {
