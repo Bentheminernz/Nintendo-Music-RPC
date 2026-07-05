@@ -65,17 +65,21 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
     log('Using standard format.', { details, state, isSplatoon });
   }
   let formedName: string | undefined = undefined;
-  if (opts.statusNmForm === "only") {
-    formedName = "Nintendo Music";
-      }
-  if (opts.statusNmForm === "none") {
-    formedName = statusTagLabel;
-  }
-  if (opts.statusNmForm === "left") {
-    formedName = `Nintendo Music - ${statusTagLabel}`;
-  }
-  if (opts.statusNmForm === "right") {
-    formedName = `${statusTagLabel} - Nintendo Music`;
+  switch (opts.statusNmForm) {
+    case StatusNmForm.Only:
+      formedName = "Nintendo Music";
+      break;
+    case StatusNmForm.None:
+      formedName = `${truncate(statusTagLabel)}`;
+      break;
+    case StatusNmForm.Left:
+      formedName = `Nintendo Music - ${truncate(statusTagLabel)}`;
+      break;
+    case StatusNmForm.Right:
+      formedName = `${statusTagLabel} - Nintendo Music`;
+      break;
+    default:
+      formedName = `Nintendo Music - ${truncate(statusTagLabel)}`;
   }
   const activity: DiscordActivity = {
     name: formedName,
