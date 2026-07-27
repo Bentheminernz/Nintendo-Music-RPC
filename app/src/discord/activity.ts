@@ -112,7 +112,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
   }
 
   const largeImageUrl = resolveImageUrl(opts.largeRpcImage, track);
-  const smallImageUrl = resolveImageUrl(opts.smallRpcImage, track);
+  const smallImageUrl = track.paused ? 'paused' : resolveImageUrl(opts.smallRpcImage, track);
 
   const largeText =
     opts.largeRpcImage === RpcImageSource.Playlist ? (track.playlist?.playlistName ?? track.track.name)

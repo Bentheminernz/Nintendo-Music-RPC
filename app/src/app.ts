@@ -17,6 +17,7 @@ const { log, warn } = createLogger('app');
 
 // if the extension doesnt talk for 15s then thats our signal to clear
 const HEARTBEAT_TIMEOUT_MS = 15_000;
+const PAUSE_TIMEOUT_MS = 30_000;
 
 /** Main app for handling RPC and the bridge server. */
 export class RichPresenceApp {
@@ -24,11 +25,13 @@ export class RichPresenceApp {
   private lastfmCooldown = 0;
   private rpcEnabled = true;
   private tabConnected = true;
+  private pauseTimedOut = false;
   private readonly playlistCache = new Map<string, { imageUrl: string; name: string }>();
 
   private discord: DiscordIpc | null = null;
   private server: Server | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
+  private pausedTimer: NodeJS.Timeout | null = null;
   private prefs: PreferencesStore | null = null;
   private prefsWindow: PreferencesWindow | null = null;
   private readonly tray: TrayManager;
@@ -138,6 +141,7 @@ export class RichPresenceApp {
   stop(): void {
     log('Cleaning up resources.');
     this.clearHeartbeat();
+    this.clearPauseTimer();
     this.server?.close();
     this.discord?.destroy();
   }
@@ -177,10 +181,12 @@ export class RichPresenceApp {
     const playlistId = payload.playlist?.playlistId || null;
     const isSameTrack = this.currentTrack?.track.name === payload.track.trackName;
 
-    if (isSameTrack && this.currentTrack) {
+      if (isSameTrack && this.currentTrack) {
       const ct = typeof payload.currentTime === 'number' ? payload.currentTime : null;
       this.currentTrack.currentTime = ct;
       this.currentTrack.duration = typeof payload.duration === 'number' ? payload.duration : null;
+
+      const wasPaused = this.currentTrack.paused;
       this.currentTrack.paused = typeof payload.paused === 'boolean' ? payload.paused : null;
       this.currentTrack.receivedAt = new Date().toISOString();
       this.currentTrack.track.thumbnailURL = payload.track.thumbnailURL || null;
@@ -201,6 +207,16 @@ export class RichPresenceApp {
 
       this.tabConnected = true;
       this.resetHeartbeat();
+
+      if (this.currentTrack.paused) {
+        if (!wasPaused && !this.pausedTimer) {
+          this.pausedTimer = setTimeout(() => this.handlePauseTimeout(), PAUSE_TIMEOUT_MS);
+        }
+      } else {
+        this.pauseTimedOut = false;
+        this.clearPauseTimer();
+      }
+
       this.tray.update();
       this.updateActivity();
       return;
@@ -233,6 +249,11 @@ export class RichPresenceApp {
     };
 
     this.currentTrack = newTrack;
+    this.pauseTimedOut = false;
+    this.clearPauseTimer();
+    if (this.currentTrack.paused) {
+      this.pausedTimer = setTimeout(() => this.handlePauseTimeout(), PAUSE_TIMEOUT_MS);
+    }
 
     void this.tryScrobble(prevTrack, newTrack);
 
@@ -394,6 +415,8 @@ export class RichPresenceApp {
   private handleDisconnect(): void {
     log('Tab disconnected — clearing activity.');
     this.clearHeartbeat();
+    this.clearPauseTimer();
+    this.pauseTimedOut = false;
     this.tabConnected = false;
 
     const lastTrack = this.currentTrack;
@@ -433,6 +456,21 @@ export class RichPresenceApp {
     this.heartbeatTimer = setTimeout(() => this.handleHeartbeatTimeout(), HEARTBEAT_TIMEOUT_MS);
   }
 
+  private clearPauseTimer(): void {
+    if (this.pausedTimer) {
+      clearTimeout(this.pausedTimer);
+      this.pausedTimer = null;
+    }
+  }
+
+  private handlePauseTimeout(): void {
+    this.pausedTimer = null;
+    this.pauseTimedOut = true;
+    log(`Track paused for ${PAUSE_TIMEOUT_MS / 1000}s — clearing Discord activity.`);
+    this.discord?.clearActivity();
+    this.tray.update();
+  }
+
   private clearHeartbeat(): void {
     if (this.heartbeatTimer) {
       clearTimeout(this.heartbeatTimer);
@@ -442,6 +480,8 @@ export class RichPresenceApp {
 
   private handleHeartbeatTimeout(): void {
     this.heartbeatTimer = null;
+    this.clearPauseTimer();
+    this.pauseTimedOut = false;
     log(`No ping from extension for ${HEARTBEAT_TIMEOUT_MS / 1000}s — clearing activity.`);
     this.tabConnected = false;
 
@@ -473,7 +513,7 @@ export class RichPresenceApp {
   private updateActivity(): void {
     const track = this.currentTrack;
 
-    if (!this.discord?.ready || !track?.track.name || !this.rpcEnabled || !this.tabConnected) {
+    if (!this.discord?.ready || !track?.track.name || !this.rpcEnabled || !this.tabConnected || this.pauseTimedOut) {
       log('Skipping Discord activity update.', {
         rpcReady: this.discord?.ready ?? false,
         rpcEnabled: this.rpcEnabled,

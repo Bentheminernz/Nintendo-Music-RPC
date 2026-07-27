@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import { app, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { createLogger } from './logger';
+import { LAST_FM_API, LAST_FM_SECRET } from './config';
 import type { Track } from '../types';
 import { SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, SPLATOON_RAIDERS_SPECIAL_RELEASE_ID } from '../types';
 
@@ -12,15 +12,11 @@ const { log, warn } = createLogger('lastfm-auth');
 const BASE_URL = 'https://ws.audioscrobbler.com/2.0/';
 
 function apiKey(): string {
-  const key = process.env.LAST_FM_API;
-  if (!key) throw new Error('LAST_FM_API environment variable is not set');
-  return key;
+  return LAST_FM_API;
 }
 
 function apiSecret(): string {
-  const secret = process.env.LAST_FM_SECRET;
-  if (!secret) throw new Error('LAST_FM_SECRET environment variable is not set');
-  return secret;
+  return LAST_FM_SECRET;
 }
 
 export interface LastfmAuth {
@@ -170,6 +166,10 @@ function scrobbleArtist(track: Track): string {
 }
 
 function scrobbleAlbum(track: Track): string {
+  if (track.game.gameName?.toLowerCase().includes('splatoon raiders')) {
+    return 'Splatoon Raiders';
+  }
+
   return track.game.gameName ?? 'Nintendo Music';
 }
 
