@@ -38,6 +38,7 @@ export interface Track {
   duration: number | null;
   paused: boolean | null;
   receivedAt: string;
+  scrobbled?: boolean;
 }
 
 export namespace Track {

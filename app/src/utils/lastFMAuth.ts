@@ -116,8 +116,8 @@ function sign(params: Record<string, string>): string {
 
 async function apiCall(params: Record<string, string>): Promise<any> {
   const api_sig = sign(params);
-  const query = new URLSearchParams({ ...params, api_sig, format: 'json' })
-  const res = await fetch(`${BASE_URL}?${query}`, { method: 'POST' });
+  const body = new URLSearchParams({ ...params, api_sig, format: 'json' });
+  const res = await fetch(BASE_URL, { method: 'POST', body });
   const data = await res.json();
   if (data.error) {
     throw new Error(`Last.fm API error: ${data.message}`);
@@ -194,6 +194,10 @@ async function scrobbleApiCall(
 
 export async function updateNowPlaying(track: Track, sessionKey: string): Promise<void> {
   log('Updating Now Playing on Last.fm.', { track: track.track.name });
+  if (track.paused) {
+    log('Skipping Now Playing update because track is paused.', { track: track.track.name });
+    return;
+  }
   await scrobbleApiCall('track.updateNowPlaying', track, sessionKey);
 }
 

@@ -21,7 +21,6 @@ const HEARTBEAT_TIMEOUT_MS = 15_000;
 /** Main app for handling RPC and the bridge server. */
 export class RichPresenceApp {
   private currentTrack: Track | null = null;
-  private previousTrack: Track | null = null;
   private lastfmCooldown = 0;
   private rpcEnabled = true;
   private tabConnected = true;
@@ -176,6 +175,38 @@ export class RichPresenceApp {
     }
 
     const playlistId = payload.playlist?.playlistId || null;
+    const isSameTrack = this.currentTrack?.track.name === payload.track.trackName;
+
+    if (isSameTrack && this.currentTrack) {
+      const ct = typeof payload.currentTime === 'number' ? payload.currentTime : null;
+      this.currentTrack.currentTime = ct;
+      this.currentTrack.duration = typeof payload.duration === 'number' ? payload.duration : null;
+      this.currentTrack.paused = typeof payload.paused === 'boolean' ? payload.paused : null;
+      this.currentTrack.receivedAt = new Date().toISOString();
+      this.currentTrack.track.thumbnailURL = payload.track.thumbnailURL || null;
+      this.currentTrack.track.rightNotation = payload.track.rightNotation || null;
+      this.currentTrack.game.gameName = payload.game.gameName || null;
+      this.currentTrack.game.gameId = payload.game.gameId || null;
+      this.currentTrack.game.gameImage = payload.game.gameImage || null;
+      this.currentTrack.game.formalHardware = payload.game.formalHardware || null;
+      this.currentTrack.playlist = {
+        playlistId,
+        playlistImageURL: playlistId ? (this.playlistCache.get(playlistId)?.imageUrl ?? null) : null,
+        playlistName: playlistId ? (this.playlistCache.get(playlistId)?.name ?? null) : null,
+      };
+
+      if (!this.currentTrack.scrobbled && shouldScrobble(this.currentTrack)) {
+        void this.scrobbleCurrentTrack(this.currentTrack);
+      }
+
+      this.tabConnected = true;
+      this.resetHeartbeat();
+      this.tray.update();
+      this.updateActivity();
+      return;
+    }
+
+    const prevTrack = this.currentTrack;
 
     const newTrack: Track = {
       track: {
@@ -201,14 +232,11 @@ export class RichPresenceApp {
       receivedAt: new Date().toISOString(),
     };
 
-    const prevTrack = this.currentTrack;
-
-    this.previousTrack = prevTrack;
     this.currentTrack = newTrack;
 
     void this.tryScrobble(prevTrack, newTrack);
 
-    log('Track updated.', {
+    log('Track changed.', {
       trackName: payload.track.trackName,
       playlistId,
       currentTime: payload.currentTime,
@@ -227,7 +255,7 @@ export class RichPresenceApp {
     }
   }
 
-  private readonly SCRMBLR_COOLDOWN_MS = 30_000;
+  private readonly SCRMBLR_COOLDOWN_MS = 2_000;
 
   private canScrobble(): boolean {
     const now = Date.now();
@@ -265,11 +293,12 @@ export class RichPresenceApp {
     const prefs = this.prefs?.getAll();
     if (!session.sessionKey || !prefs?.scrobblingEnabled) return;
 
-    const sameTrack = prevTrack?.track.name === newTrack.track.name;
-
-    if (prevTrack && !sameTrack && shouldScrobble(prevTrack)) {
-      if (this.canScrobble()) {
-        const timestamp = Math.floor(Date.now() / 1000) - Math.round(prevTrack.duration ?? 0);
+    if (prevTrack && !prevTrack.scrobbled && shouldScrobble(prevTrack)) {
+      if (!this.canScrobble()) {
+        log('Skipping scrobble (cooldown).', { track: prevTrack.track.name });
+      } else {
+        prevTrack.scrobbled = true;
+        const timestamp = Math.floor(Date.now() / 1000) - Math.round(prevTrack.currentTime ?? 0);
         try {
           await scrobbleTrack(prevTrack, session.sessionKey, timestamp);
           log('Scrobbled previous track.', { track: prevTrack.track.name });
@@ -277,8 +306,6 @@ export class RichPresenceApp {
           if (isInvalidSessionError(err)) { this.clearLastfmSession(); return; }
           warn('Failed to scrobble previous track.', { err });
         }
-      } else {
-        log('Skipping scrobble (cooldown).', { track: prevTrack.track.name });
       }
     }
 
@@ -295,13 +322,14 @@ export class RichPresenceApp {
     const session = this.lastfmAuth.getAll();
     const prefs = this.prefs?.getAll();
     if (!session.sessionKey || !prefs?.scrobblingEnabled) return;
-    if (!shouldScrobble(track)) return;
+    if (track.scrobbled || !shouldScrobble(track)) return;
     if (!this.canScrobble()) {
       log('Skipping scrobble on stop (cooldown).', { track: track.track.name });
       return;
     }
 
-    const timestamp = Math.floor(Date.now() / 1000) - Math.round(track.duration ?? 0);
+    track.scrobbled = true;
+    const timestamp = Math.floor(Date.now() / 1000) - Math.round(track.currentTime ?? 0);
     try {
       await scrobbleTrack(track, session.sessionKey, timestamp);
       log('Scrobbled track on stop.', { track: track.track.name });
@@ -370,7 +398,6 @@ export class RichPresenceApp {
 
     const lastTrack = this.currentTrack;
     this.currentTrack = null;
-    this.previousTrack = null;
 
     if (lastTrack) {
       void this.scrobbleOnStop(lastTrack);
@@ -379,6 +406,26 @@ export class RichPresenceApp {
     this.discord?.clearActivity();
     this.tray.update();
     this.notify(null);
+  }
+
+  private async scrobbleCurrentTrack(track: Track): Promise<void> {
+    const session = this.lastfmAuth.getAll();
+    const prefs = this.prefs?.getAll();
+    if (!session.sessionKey || !prefs?.scrobblingEnabled) return;
+    if (!this.canScrobble()) {
+      log('Skipping scrobble (cooldown).', { track: track.track.name });
+      return;
+    }
+
+    track.scrobbled = true;
+    const timestamp = Math.floor(Date.now() / 1000) - Math.round(track.currentTime ?? 0);
+    try {
+      await scrobbleTrack(track, session.sessionKey, timestamp);
+      log('Scrobbled current track (threshold reached).', { track: track.track.name });
+    } catch (err) {
+      if (isInvalidSessionError(err)) { this.clearLastfmSession(); return; }
+      warn('Failed to scrobble current track.', { err });
+    }
   }
 
   private resetHeartbeat(): void {
@@ -400,7 +447,6 @@ export class RichPresenceApp {
 
     const lastTrack = this.currentTrack;
     this.currentTrack = null;
-    this.previousTrack = null;
 
     if (lastTrack) {
       void this.scrobbleOnStop(lastTrack);
