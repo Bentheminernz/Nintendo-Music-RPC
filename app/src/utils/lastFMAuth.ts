@@ -107,7 +107,7 @@ function sign(params: Record<string, string>): string {
     .map((key) => key + params[key])
     .join('');
 
-  return crypto.createHash('md5').update(sorted + apiSecret()).digest('hex');
+  return crypto.createHash('md5').update(sorted + apiSecret()).digest('hex'); // nosemgrep: Last.fm API requires MD5 signing per spec
 }
 
 async function apiCall(params: Record<string, string>): Promise<any> {
