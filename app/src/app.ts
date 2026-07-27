@@ -11,6 +11,7 @@ import { PreferencesWindow } from './utils/PreferencesWindow';
 import { createBridgeServer } from './BridgerServer';
 import type { BridgeState, Track, TrackPayload } from './types';
 import { RpcImageSource, LabelPlacement, SPECIAL_PLAYLIST_IDS, SPECIAL_PLAYLISTS } from './types';
+import { getToken, openAuthURL, getSession, LastfmAuthStore, updateNowPlaying, scrobbleTrack, shouldScrobble, isInvalidSessionError } from './utils/lastFMAuth';
 
 const { log, warn } = createLogger('app');
 
@@ -20,6 +21,8 @@ const HEARTBEAT_TIMEOUT_MS = 15_000;
 /** Main app for handling RPC and the bridge server. */
 export class RichPresenceApp {
   private currentTrack: Track | null = null;
+  private previousTrack: Track | null = null;
+  private lastfmCooldown = 0;
   private rpcEnabled = true;
   private tabConnected = true;
   private readonly playlistCache = new Map<string, { imageUrl: string; name: string }>();
@@ -31,6 +34,8 @@ export class RichPresenceApp {
   private prefsWindow: PreferencesWindow | null = null;
   private readonly tray: TrayManager;
   private readonly subscribers = new Set<(track: Track | null) => void>();
+  private pendingToken: string | null = null;
+  private readonly lastfmAuth = new LastfmAuthStore();
 
   constructor() {
     this.tray = new TrayManager({
@@ -65,6 +70,42 @@ export class RichPresenceApp {
       log('IPC prefs:set received.', { key, value });
       this.prefs!.set(key as keyof Preferences, value as Preferences[keyof Preferences]);
     });
+    ipcMain.on('lastfm:startAuth', async (event) => {
+      log('IPC lastfm:startAuth received.');
+      this.pendingToken = await getToken();
+      openAuthURL(this.pendingToken);
+      void this.pollAuthComplete();
+    });
+    ipcMain.handle('lastfm:completeAuth', async () => {
+      if (!this.pendingToken) {
+        warn('IPC lastfm:completeAuth received but no pending token.');
+        return null;
+      }
+      try {
+        const token = this.pendingToken;
+        const { username, sessionKey } = await getSession(token);
+        this.lastfmAuth.setSession(username, sessionKey);
+        this.pendingToken = null;
+        this.prefs!.set('scrobblingEnabled', true);
+        log('Last.fm authentication completed successfully.', { username });
+        return { username, sessionKey };
+      } catch (err) {
+        warn('IPC lastfm:completeAuth failed.', { err });
+        return null;
+      }
+    });
+    ipcMain.handle('lastfm:getAuth', () => {
+      return this.lastfmAuth.getAll();
+    });
+    ipcMain.on('lastfm:disconnect', () => {
+      log('IPC lastfm:disconnect received.');
+      this.lastfmAuth.clear();
+      this.prefs!.set('scrobblingEnabled', false);
+    });
+
+    this.lastfmAuth.onChange((auth) => {
+      this.prefsWindow?.win?.webContents.send('lastfm:changed', auth);
+    });
 
     this.prefs.onChange((updated) => {
       this.prefsWindow?.sendUpdate(updated);
@@ -77,6 +118,19 @@ export class RichPresenceApp {
       onConnect: () => this.handleConnect(),
       onDisconnect: () => this.handleDisconnect(),
       getState: () => this.getState(),
+      onLastfmCallback: (token) => {
+        if (this.pendingToken && token === this.pendingToken) {
+          log('Last.fm auth callback completing auth.');
+          void getSession(token).then(({ username, sessionKey }) => {
+            this.lastfmAuth.setSession(username, sessionKey);
+            this.pendingToken = null;
+            this.prefs!.set('scrobblingEnabled', true);
+            log('Last.fm authentication completed via callback.', { username });
+          }).catch((err) => {
+            warn('Last.fm auth callback failed.', { err });
+          });
+        }
+      },
     });
     void this.connectDiscord();
   }
@@ -123,7 +177,7 @@ export class RichPresenceApp {
 
     const playlistId = payload.playlist?.playlistId || null;
 
-    this.currentTrack = {
+    const newTrack: Track = {
       track: {
         name: payload.track.trackName,
         id: payload.track.trackId || null,
@@ -147,6 +201,13 @@ export class RichPresenceApp {
       receivedAt: new Date().toISOString(),
     };
 
+    const prevTrack = this.currentTrack;
+
+    this.previousTrack = prevTrack;
+    this.currentTrack = newTrack;
+
+    void this.tryScrobble(prevTrack, newTrack);
+
     log('Track updated.', {
       trackName: payload.track.trackName,
       playlistId,
@@ -163,6 +224,90 @@ export class RichPresenceApp {
 
     if (playlistId && !this.playlistCache.has(playlistId)) {
       void this.fetchPlaylistData(playlistId);
+    }
+  }
+
+  private readonly SCRMBLR_COOLDOWN_MS = 30_000;
+
+  private canScrobble(): boolean {
+    const now = Date.now();
+    if (now < this.lastfmCooldown) return false;
+    this.lastfmCooldown = now + this.SCRMBLR_COOLDOWN_MS;
+    return true;
+  }
+
+  private async pollAuthComplete(): Promise<void> {
+    for (let i = 0; i < 5; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      if (!this.pendingToken) return;
+      try {
+        const token = this.pendingToken;
+        const { username, sessionKey } = await getSession(token);
+        this.lastfmAuth.setSession(username, sessionKey);
+        this.pendingToken = null;
+        this.prefs!.set('scrobblingEnabled', true);
+        log('Last.fm authentication completed via auto-poll.', { username });
+        return;
+      } catch {
+        // not yet authorized, will retry
+      }
+    }
+  }
+
+  private clearLastfmSession(): void {
+    this.lastfmAuth.clear();
+    this.prefs?.set('scrobblingEnabled', false);
+    log('Cleared Last.fm session due to invalid session key.');
+  }
+
+  private async tryScrobble(prevTrack: Track | null, newTrack: Track): Promise<void> {
+    const session = this.lastfmAuth.getAll();
+    const prefs = this.prefs?.getAll();
+    if (!session.sessionKey || !prefs?.scrobblingEnabled) return;
+
+    const sameTrack = prevTrack?.track.name === newTrack.track.name;
+
+    if (prevTrack && !sameTrack && shouldScrobble(prevTrack)) {
+      if (this.canScrobble()) {
+        const timestamp = Math.floor(Date.now() / 1000) - Math.round(prevTrack.duration ?? 0);
+        try {
+          await scrobbleTrack(prevTrack, session.sessionKey, timestamp);
+          log('Scrobbled previous track.', { track: prevTrack.track.name });
+        } catch (err) {
+          if (isInvalidSessionError(err)) { this.clearLastfmSession(); return; }
+          warn('Failed to scrobble previous track.', { err });
+        }
+      } else {
+        log('Skipping scrobble (cooldown).', { track: prevTrack.track.name });
+      }
+    }
+
+    try {
+      await updateNowPlaying(newTrack, session.sessionKey);
+      log('Updated Now Playing on Last.fm.', { track: newTrack.track.name });
+    } catch (err) {
+      if (isInvalidSessionError(err)) { this.clearLastfmSession(); return; }
+      warn('Failed to update Now Playing on Last.fm.', { err });
+    }
+  }
+
+  private async scrobbleOnStop(track: Track): Promise<void> {
+    const session = this.lastfmAuth.getAll();
+    const prefs = this.prefs?.getAll();
+    if (!session.sessionKey || !prefs?.scrobblingEnabled) return;
+    if (!shouldScrobble(track)) return;
+    if (!this.canScrobble()) {
+      log('Skipping scrobble on stop (cooldown).', { track: track.track.name });
+      return;
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000) - Math.round(track.duration ?? 0);
+    try {
+      await scrobbleTrack(track, session.sessionKey, timestamp);
+      log('Scrobbled track on stop.', { track: track.track.name });
+    } catch (err) {
+      if (isInvalidSessionError(err)) { this.clearLastfmSession(); return; }
+      warn('Failed to scrobble track on stop.', { err });
     }
   }
 
@@ -219,10 +364,18 @@ export class RichPresenceApp {
   }
 
   private handleDisconnect(): void {
-    log('Tab disconnected — clearing Discord activity.');
+    log('Tab disconnected — clearing activity.');
     this.clearHeartbeat();
     this.tabConnected = false;
+
+    const lastTrack = this.currentTrack;
     this.currentTrack = null;
+    this.previousTrack = null;
+
+    if (lastTrack) {
+      void this.scrobbleOnStop(lastTrack);
+    }
+
     this.discord?.clearActivity();
     this.tray.update();
     this.notify(null);
@@ -242,9 +395,17 @@ export class RichPresenceApp {
 
   private handleHeartbeatTimeout(): void {
     this.heartbeatTimer = null;
-    log(`No ping from extension for ${HEARTBEAT_TIMEOUT_MS / 1000}s — clearing Discord activity.`);
+    log(`No ping from extension for ${HEARTBEAT_TIMEOUT_MS / 1000}s — clearing activity.`);
     this.tabConnected = false;
+
+    const lastTrack = this.currentTrack;
     this.currentTrack = null;
+    this.previousTrack = null;
+
+    if (lastTrack) {
+      void this.scrobbleOnStop(lastTrack);
+    }
+
     this.discord?.clearActivity();
     this.tray.update();
     this.notify(null);

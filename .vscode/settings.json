@@ -1,0 +1,10 @@
+{
+    "editor.indentSize": "tabSize",
+    "editor.tabSize": 2,
+    "json.schemas": [
+        {
+            "fileMatch": ["opencode.json", "opencode.jsonc"],
+            "url": "https://opencode.ai/config.json"
+        }
+    ]
+}

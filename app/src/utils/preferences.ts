@@ -12,6 +12,7 @@ export interface Preferences {
   smallRpcImage: RpcImageSource;
   listeningStatusTag: ListeningStatusTag;
   statusLabelPlacement: StatusLabelPlacement;
+  scrobblingEnabled?: boolean;
 }
 
 const DEFAULTS: Preferences = {
@@ -20,6 +21,7 @@ const DEFAULTS: Preferences = {
   smallRpcImage: RpcImageSource.Game,
   listeningStatusTag: ListeningStatusTag.Track,
   statusLabelPlacement: StatusLabelPlacement.Left,
+  scrobblingEnabled: false,
 };
 
 export class PreferencesStore {

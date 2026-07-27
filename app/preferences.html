@@ -130,6 +130,79 @@
         outline: none;
         border-color: #e4000f;
       }
+
+      .btn {
+        font-size: 12px;
+        font-family: inherit;
+        font-weight: 500;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+        background: #f5f5f5;
+        color: #1a1a1a;
+        transition: background 0.15s, border-color 0.15s;
+        flex-shrink: 0;
+      }
+
+      .btn:hover {
+        background: #eaeaea;
+      }
+
+      .btn-primary {
+        background: #e4000f;
+        color: white;
+        border-color: #e4000f;
+      }
+
+      .btn-primary:hover {
+        background: #c4000d;
+      }
+
+      .btn-danger {
+        color: #e4000f;
+        border-color: #e4000f;
+        background: white;
+      }
+
+      .btn-danger:hover {
+        background: #fff0f0;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      .btn-attention {
+        background: #16a34a;
+        color: white;
+        border-color: #16a34a;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .btn-attention:hover {
+        background: #15803d;
+      }
+
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5); }
+        50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+      }
+
+      .attention-text {
+        color: #16a34a;
+        font-weight: 600 !important;
+      }
+
+      .status-signed-in {
+        font-size: 12px;
+        font-weight: 500;
+        color: #22c55e;
+        flex-shrink: 0;
+      }
+
+
     </style>
   </head>
   <body>
@@ -199,6 +272,37 @@
       </div>
     </div>
 
+    <div class="card" style="margin-top: 16px">
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Last.fm</label>
+          <p id="lastfm-desc">Connect your account to scrobble your listening.</p>
+        </div>
+        <button class="btn btn-primary" id="lastfm-signin-btn">Sign in</button>
+        <button class="btn btn-attention" id="lastfm-complete-btn" style="display:none">I've approved! Complete sign in</button>
+        <span class="status-signed-in" id="lastfm-signed-in" style="display:none">Signed in</span>
+      </div>
+      <div class="setting-row" id="lastfm-connected-row" style="display:none">
+        <div class="setting-info">
+          <label>Connected as <span id="lastfm-username"></span></label>
+          <p>Scrobbling will be sent to your Last.fm account.</p>
+        </div>
+      </div>
+      <div class="setting-row" id="lastfm-scrobble-row" style="display:none">
+        <div class="setting-info">
+          <label for="scrobbling-enabled">Scrobble tracks</label>
+          <p>Send what I'm listening to Last.fm.</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="scrobbling-enabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="setting-row" id="lastfm-disconnect-row" style="display:none">
+        <button class="btn btn-danger" id="lastfm-disconnect-btn">Disconnect</button>
+      </div>
+    </div>
+
     <script>
       /** @type {import('./src/preload-prefs').PrefsApi} */
       const prefsApi = window.prefs;
@@ -217,6 +321,7 @@
         smallRpcImageEl.value = data.smallRpcImage ?? 'game';
         listeningStatusTagEl.value = data.listeningStatusTag ?? 'track';
         statusLabelPlacementEl.value = data.statusLabelPlacement;
+        scrobblingEnabledEl.checked = data.scrobblingEnabled ?? false;
       }
 
       prefsApi.getAll().then(render);
@@ -257,6 +362,95 @@
       statusLabelPlacementEl.addEventListener('change', () => {
         prefsApi.set('statusLabelPlacement', statusLabelPlacementEl.value);
        });
+
+      /** Last.fm UI */
+      const lastfmDesc = document.getElementById('lastfm-desc');
+      const lastfmSigninBtn = document.getElementById('lastfm-signin-btn');
+      const lastfmCompleteBtn = document.getElementById('lastfm-complete-btn');
+      const lastfmSignedIn = document.getElementById('lastfm-signed-in');
+      const lastfmConnectedRow = document.getElementById('lastfm-connected-row');
+      const lastfmUsername = document.getElementById('lastfm-username');
+      const lastfmScrobbleRow = document.getElementById('lastfm-scrobble-row');
+      const lastfmDisconnectRow = document.getElementById('lastfm-disconnect-row');
+      const lastfmDisconnectBtn = document.getElementById('lastfm-disconnect-btn');
+      const scrobblingEnabledEl = document.getElementById('scrobbling-enabled');
+
+      function showDisconnected() {
+        lastfmSigninBtn.style.display = '';
+        lastfmSigninBtn.textContent = 'Sign in';
+        lastfmSigninBtn.disabled = false;
+        lastfmCompleteBtn.style.display = 'none';
+        lastfmSignedIn.style.display = 'none';
+        lastfmConnectedRow.style.display = 'none';
+        lastfmScrobbleRow.style.display = 'none';
+        lastfmDisconnectRow.style.display = 'none';
+        lastfmDesc.textContent = 'Connect your account to scrobble your listening.';
+      }
+
+      function showPending() {
+        lastfmSigninBtn.style.display = 'none';
+        lastfmCompleteBtn.style.display = '';
+        lastfmSignedIn.style.display = 'none';
+        lastfmConnectedRow.style.display = 'none';
+        lastfmScrobbleRow.style.display = 'none';
+        lastfmDisconnectRow.style.display = 'none';
+        lastfmDesc.innerHTML = '<span class="attention-text">⚠️ Authorized in your browser? I\'ll try to detect it automatically. If that fails, click the green button manually.</span>';
+        lastfmCompleteBtn.textContent = "I've approved! Complete sign in";
+        lastfmCompleteBtn.disabled = false;
+      }
+
+      function showConnected(auth) {
+        lastfmSigninBtn.style.display = 'none';
+        lastfmCompleteBtn.style.display = 'none';
+        lastfmSignedIn.style.display = '';
+        lastfmConnectedRow.style.display = '';
+        lastfmUsername.textContent = auth.username;
+        lastfmScrobbleRow.style.display = '';
+        lastfmDisconnectRow.style.display = '';
+        lastfmDesc.textContent = 'Signed in as ' + auth.username + '. Scrobbling is saved and will persist across app restarts.';
+      }
+
+      function renderLastfm(auth) {
+        if (auth.username && auth.sessionKey) {
+          showConnected(auth);
+        } else {
+          showDisconnected();
+        }
+      }
+
+      prefsApi.lastfm.getAuth().then(renderLastfm);
+      prefsApi.lastfm.onChange(renderLastfm);
+      prefsApi.onChange((data) => {
+        scrobblingEnabledEl.checked = data.scrobblingEnabled ?? false;
+      });
+
+      lastfmSigninBtn.addEventListener('click', () => {
+        prefsApi.lastfm.startAuth();
+        showPending();
+      });
+
+      lastfmCompleteBtn.addEventListener('click', async () => {
+        lastfmCompleteBtn.textContent = 'Completing...';
+        lastfmCompleteBtn.disabled = true;
+        const result = await prefsApi.lastfm.completeAuth();
+        if (result) {
+          showConnected(result);
+        } else {
+          lastfmCompleteBtn.textContent = "I've approved! Complete sign in";
+          lastfmCompleteBtn.disabled = false;
+          lastfmDesc.innerHTML = '<span class="attention-text">Something went wrong. Try signing in again.</span>';
+        }
+      });
+
+      lastfmDisconnectBtn.addEventListener('click', () => {
+        prefsApi.lastfm.disconnect();
+        showDisconnected();
+        scrobblingEnabledEl.checked = false;
+      });
+
+      scrobblingEnabledEl.addEventListener('change', () => {
+        prefsApi.set('scrobblingEnabled', scrobblingEnabledEl.checked);
+      });
     </script>
   </body>
 </html>

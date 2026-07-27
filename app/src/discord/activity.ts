@@ -1,4 +1,4 @@
-import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, ListeningStatusTag, StatusLabelPlacement } from '../types';
+import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, SPLATOON_RAIDERS_SPECIAL_RELEASE_ID, ListeningStatusTag, StatusLabelPlacement } from '../types';
 import { createLogger } from '../utils/logger';
 
 const { log } = createLogger('activity');
@@ -35,7 +35,15 @@ function resolveListeningStatusTag(source: ListeningStatusTag, track: Track): st
 export function buildActivity(track: Track, opts: ActivityOptions): DiscordActivity {
   const gameName = track.game.gameName || 'Nintendo Music';
   const notation = track.track.rightNotation ? track.track.rightNotation.replace('©', '').trim() : null;
-  const isSplatoon = [SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID].includes(track.game.gameId || '');
+  let isSplatoon: boolean = false;
+  if (track.game.gameId) {
+    isSplatoon = [SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID].includes(track.game.gameId);
+  } else if (track.game.gameName) {
+    // my hacky way to capture Splatoon Raiders outside of listening to its playlist cos its a special release and not a game
+    isSplatoon = track.game.gameName.toLowerCase().includes('splatoon');
+  } else if (track.playlist?.playlistId) {
+    isSplatoon = track.playlist.playlistId.includes(SPLATOON_RAIDERS_SPECIAL_RELEASE_ID);
+  }
 
   let details: string;
   let state: string;
@@ -134,6 +142,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
       label: 'Listen on Nintendo Music',
       url: Track.trackURL(track) || 'https://music.nintendo.com',
     });
+    activity.details_url = Track.trackURL(track) || 'https://music.nintendo.com';
   }
 
   if (track.game.gameId && track.game.gameName) {
@@ -141,6 +150,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
       label: 'Open Game Page',
       url: Track.gameURL(track) || 'https://music.nintendo.com',
     });
+    activity.state_url = Track.gameURL(track) || 'https://music.nintendo.com';
   }
 
   if (buttons.length > 0) {

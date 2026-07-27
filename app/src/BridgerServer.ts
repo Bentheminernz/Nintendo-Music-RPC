@@ -7,11 +7,21 @@ import type { BridgeState, TrackPayload } from './types';
 
 const { log, warn } = createLogger('bridge');
 
+const CALLBACK_HTML = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Last.fm Auth</title></head>
+<body style="font-family:-apple-system,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f5f5">
+<div style="text-align:center;background:white;padding:40px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+<h2 style="margin:0 0 8px;font-size:18px">Last.fm Authorized</h2>
+<p style="margin:0;color:#555;font-size:14px">You can close this window and return to the app.</p>
+</div></body></html>`;
+
 export interface BridgeHandlers {
   onTrack: (payload: TrackPayload) => void;
   onConnect: () => void;
   onDisconnect: () => void;
   getState: () => BridgeState;
+  onLastfmCallback?: (token: string) => void;
 }
 
 function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
@@ -77,6 +87,18 @@ export function createBridgeServer(port: number, handlers: BridgeHandlers): http
         warn('Invalid track payload.', error);
         sendJson(res, 400, { ok: false, error: 'Invalid payload' });
       }
+      return;
+    }
+
+    if (req.method === 'GET' && req.url?.startsWith('/lastfm-callback')) {
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const token = url.searchParams.get('token');
+      if (token && handlers.onLastfmCallback) {
+        log('Last.fm auth callback received.', { token });
+        handlers.onLastfmCallback(token);
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(CALLBACK_HTML);
       return;
     }
 
