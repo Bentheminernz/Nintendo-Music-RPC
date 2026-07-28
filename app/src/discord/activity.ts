@@ -15,6 +15,11 @@ export interface ActivityOptions {
 }
 
 function resolveImageUrl(source: RpcImageSource, track: Track): string | null {
+  // hacky way to capture Splatoon Raiders special release
+  if (track.game.gameName?.toLowerCase().includes('splatoon raiders') && source === RpcImageSource.Game) {
+    return 'https://image-assets.m.nintendo.com/ba947554-e9b8-472c-b5e8-f67b86052139';
+  }
+
   switch (source) {
     case RpcImageSource.Game: return track.game.gameImage;
     case RpcImageSource.Track: return track.track.thumbnailURL;
@@ -36,13 +41,17 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
   const gameName = track.game.gameName || 'Nintendo Music';
   const notation = track.track.rightNotation ? track.track.rightNotation.replace('©', '').trim() : null;
   let isSplatoon: boolean = false;
+
+  let isRaidersSpecialRelease: boolean = false;
   if (track.game.gameId) {
     isSplatoon = [SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID].includes(track.game.gameId);
   } else if (track.game.gameName) {
     // my hacky way to capture Splatoon Raiders outside of listening to its playlist cos its a special release and not a game
     isSplatoon = track.game.gameName.toLowerCase().includes('splatoon');
+    isRaidersSpecialRelease = track.game.gameName.toLowerCase().includes('raiders');
   } else if (track.playlist?.playlistId) {
     isSplatoon = track.playlist.playlistId.includes(SPLATOON_RAIDERS_SPECIAL_RELEASE_ID);
+    isRaidersSpecialRelease = track.playlist.playlistId.includes(SPLATOON_RAIDERS_SPECIAL_RELEASE_ID);
   }
 
   let details: string;
