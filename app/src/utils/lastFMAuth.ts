@@ -1,22 +1,15 @@
 import { app, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
-import crypto from 'node:crypto';
 import { createLogger } from './logger';
-import { LAST_FM_API, LAST_FM_SECRET } from './config';
+import { LAST_FM_API, LASTFM_BRIDGE_URL } from './config';
 import type { Track } from '../types';
 import { SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, SPLATOON_RAIDERS_SPECIAL_RELEASE_ID } from '../types';
 
 const { log, warn } = createLogger('lastfm-auth');
 
-const BASE_URL = 'https://ws.audioscrobbler.com/2.0/';
-
 function apiKey(): string {
   return LAST_FM_API;
-}
-
-function apiSecret(): string {
-  return LAST_FM_SECRET;
 }
 
 export interface LastfmAuth {
@@ -101,20 +94,12 @@ export class LastfmAuthStore {
   }
 }
 
-function sign(params: Record<string, string>): string {
-  const sorted = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join('');
-
-  // codeql[js/weak-cryptographic-algorithm]: Last.fm API requires MD5 signing per spec
-  return crypto.createHash('md5').update(sorted + apiSecret()).digest('hex'); 
-}
-
-async function apiCall(params: Record<string, string>): Promise<any> {
-  const api_sig = sign(params);
-  const body = new URLSearchParams({ ...params, api_sig, format: 'json' });
-  const res = await fetch(BASE_URL, { method: 'POST', body });
+async function apiCall(method: string, params: Record<string, string> = {}): Promise<any> {
+  const res = await fetch(LASTFM_BRIDGE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method, params }),
+  });
   const data = await res.json();
   if (data.error) {
     throw new Error(`Last.fm API error: ${data.message}`);
@@ -123,7 +108,7 @@ async function apiCall(params: Record<string, string>): Promise<any> {
 }
 
 export async function getToken(): Promise<string> {
-  const data = await apiCall({ method: 'auth.getToken', api_key: apiKey() });
+  const data = await apiCall('auth.getToken');
   return data.token;
 }
 
@@ -133,7 +118,7 @@ export function openAuthURL(token: string): void {
 }
 
 export async function getSession(token: string): Promise<{ username: string; sessionKey: string }> {
-  const data = await apiCall({ method: 'auth.getSession', api_key: apiKey(), token });
+  const data = await apiCall('auth.getSession', { token });
   return { username: data.session.name, sessionKey: data.session.key };
 }
 
@@ -181,8 +166,6 @@ async function scrobbleApiCall(
   timestamp?: number,
 ): Promise<void> {
   const params: Record<string, string> = {
-    method,
-    api_key: apiKey(),
     sk: sessionKey,
     track: scrobbleTitle(track),
     artist: scrobbleArtist(track),
@@ -190,7 +173,7 @@ async function scrobbleApiCall(
   };
   if (track.duration) params.duration = String(Math.round(track.duration));
   if (timestamp) params.timestamp = String(timestamp);
-  await apiCall(params);
+  await apiCall(method, params);
 }
 
 export async function updateNowPlaying(track: Track, sessionKey: string): Promise<void> {
