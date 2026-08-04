@@ -91,11 +91,15 @@ export function createBridgeServer(port: number, handlers: BridgeHandlers): http
     }
 
     if (req.method === 'GET' && req.url?.startsWith('/lastfm-callback')) {
-      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-      const token = url.searchParams.get('token');
-      if (token && handlers.onLastfmCallback) {
-        log('Last.fm auth callback received.', { token });
-        handlers.onLastfmCallback(token);
+      try {
+        const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const token = url.searchParams.get('token');
+        if (token && handlers.onLastfmCallback) {
+          log('Last.fm auth callback received.');
+          handlers.onLastfmCallback(token);
+        }
+      } catch (error) {
+        warn('Invalid Last.fm callback URL.', error);
       }
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(CALLBACK_HTML);

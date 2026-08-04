@@ -279,12 +279,12 @@ export class RichPresenceApp {
     }
   }
 
-  private readonly SCRMBLR_COOLDOWN_MS = 2_000;
+  private readonly SCROBBLE_COOLDOWN_MS = 2_000;
 
   private canScrobble(): boolean {
     const now = Date.now();
     if (now < this.lastfmCooldown) return false;
-    this.lastfmCooldown = now + this.SCRMBLR_COOLDOWN_MS;
+    this.lastfmCooldown = now + this.SCROBBLE_COOLDOWN_MS;
     return true;
   }
 
@@ -321,10 +321,10 @@ export class RichPresenceApp {
       if (!this.canScrobble()) {
         log('Skipping scrobble (cooldown).', { track: prevTrack.track.name });
       } else {
-        prevTrack.scrobbled = true;
         const timestamp = Math.floor(Date.now() / 1000) - Math.round(prevTrack.currentTime ?? 0);
         try {
           await scrobbleTrack(prevTrack, session.sessionKey, timestamp);
+          prevTrack.scrobbled = true;
           log('Scrobbled previous track.', { track: prevTrack.track.name });
         } catch (err) {
           if (isInvalidSessionError(err)) { this.clearLastfmSession(); return; }
