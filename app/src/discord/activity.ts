@@ -1,4 +1,4 @@
-import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, ListeningStatusTag, StatusLabelPlacement } from '../types';
+import { Track, DiscordActivity, DiscordActivityButton, RpcImageSource, SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID, SPLATOON_RAIDERS_SPECIAL_RELEASE_ID, ListeningStatusTag, StatusLabelPlacement } from '../types';
 import { createLogger } from '../utils/logger';
 
 const { log } = createLogger('activity');
@@ -15,6 +15,11 @@ export interface ActivityOptions {
 }
 
 function resolveImageUrl(source: RpcImageSource, track: Track): string | null {
+  // hacky way to capture Splatoon Raiders special release
+  if (track.game.gameName?.toLowerCase().includes('splatoon raiders') && source === RpcImageSource.Game) {
+    return 'https://image-assets.m.nintendo.com/ba947554-e9b8-472c-b5e8-f67b86052139';
+  }
+
   switch (source) {
     case RpcImageSource.Game: return track.game.gameImage;
     case RpcImageSource.Track: return track.track.thumbnailURL;
@@ -35,7 +40,16 @@ function resolveListeningStatusTag(source: ListeningStatusTag, track: Track): st
 export function buildActivity(track: Track, opts: ActivityOptions): DiscordActivity {
   const gameName = track.game.gameName || 'Nintendo Music';
   const notation = track.track.rightNotation ? track.track.rightNotation.replace('©', '').trim() : null;
-  const isSplatoon = [SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID].includes(track.game.gameId || '');
+  let isSplatoon: boolean = false;
+
+  if (track.game.gameId) {
+    isSplatoon = [SPLATOON_GAME_ID, SPLATOON_2_GAME_ID, SPLATOON_3_GAME_ID].includes(track.game.gameId);
+  } else if (track.game.gameName) {
+    // Treat Splatoon Raiders as a Splatoon entry even when it is not represented as a gameId.
+    isSplatoon = track.game.gameName.toLowerCase().includes('splatoon');
+  } else if (track.playlist?.playlistId) {
+    isSplatoon = track.playlist.playlistId.includes(SPLATOON_RAIDERS_SPECIAL_RELEASE_ID);
+  }
 
   let details: string;
   let state: string;
@@ -104,7 +118,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
   }
 
   const largeImageUrl = resolveImageUrl(opts.largeRpcImage, track);
-  const smallImageUrl = resolveImageUrl(opts.smallRpcImage, track);
+  const smallImageUrl = track.paused ? 'paused' : resolveImageUrl(opts.smallRpcImage, track);
 
   const largeText =
     opts.largeRpcImage === RpcImageSource.Playlist ? (track.playlist?.playlistName ?? track.track.name)
@@ -134,6 +148,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
       label: 'Listen on Nintendo Music',
       url: Track.trackURL(track) || 'https://music.nintendo.com',
     });
+    activity.details_url = Track.trackURL(track) || 'https://music.nintendo.com';
   }
 
   if (track.game.gameId && track.game.gameName) {
@@ -141,6 +156,7 @@ export function buildActivity(track: Track, opts: ActivityOptions): DiscordActiv
       label: 'Open Game Page',
       url: Track.gameURL(track) || 'https://music.nintendo.com',
     });
+    activity.state_url = Track.gameURL(track) || 'https://music.nintendo.com';
   }
 
   if (buttons.length > 0) {
