@@ -85,6 +85,6 @@
     "electron": "^42.4.0",
     "electron-builder": "^26.15.2",
     "sharp": "^0.34.5",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
