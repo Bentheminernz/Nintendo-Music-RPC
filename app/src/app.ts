@@ -179,10 +179,13 @@ export class RichPresenceApp {
     }
 
     const playlistId = payload.playlist?.playlistId || null;
-    const isSameTrack = this.currentTrack?.track.name === payload.track.trackName;
+    const isSameTrack =
+      (this.currentTrack?.track.id && payload.track.trackId && this.currentTrack.track.id === payload.track.trackId) ||
+      (!payload.track.trackId &&
+        this.currentTrack?.track.name === payload.track.trackName &&
+        (this.currentTrack?.game.gameId ?? null) === (payload.game.gameId ?? null));
 
-      if (isSameTrack && this.currentTrack) {
-      const ct = typeof payload.currentTime === 'number' ? payload.currentTime : null;
+    if (isSameTrack && this.currentTrack) {
       this.currentTrack.currentTime = ct;
       this.currentTrack.duration = typeof payload.duration === 'number' ? payload.duration : null;
 
