@@ -185,7 +185,10 @@ export class RichPresenceApp {
         this.currentTrack?.track.name === payload.track.trackName &&
         (this.currentTrack?.game.gameId ?? null) === (payload.game.gameId ?? null));
 
-      this.currentTrack.currentTime = typeof payload.currentTime === 'number' ? payload.currentTime : null;
+    if (isSameTrack && this.currentTrack) {
+      const ct = typeof payload.currentTime === 'number' ? payload.currentTime : null;
+      this.currentTrack.currentTime = ct;
+      this.currentTrack.duration = typeof payload.duration === 'number' ? payload.duration : null;
 
       const wasPaused = this.currentTrack.paused;
       this.currentTrack.paused = typeof payload.paused === 'boolean' ? payload.paused : null;
@@ -386,7 +389,7 @@ export class RichPresenceApp {
       }
 
       const data = await res.json() as { thumbnailURL?: string; name?: string };
-	
+
       const imageUrl = typeof data?.thumbnailURL === 'string' ? data.thumbnailURL : null;
       const name = typeof data?.name === 'string' ? data.name : null;
       if (!imageUrl || !name) {
