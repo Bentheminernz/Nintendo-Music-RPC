@@ -185,9 +185,7 @@ export class RichPresenceApp {
         this.currentTrack?.track.name === payload.track.trackName &&
         (this.currentTrack?.game.gameId ?? null) === (payload.game.gameId ?? null));
 
-    if (isSameTrack && this.currentTrack) {
-      this.currentTrack.currentTime = ct;
-      this.currentTrack.duration = typeof payload.duration === 'number' ? payload.duration : null;
+      this.currentTrack.currentTime = typeof payload.currentTime === 'number' ? payload.currentTime : null;
 
       const wasPaused = this.currentTrack.paused;
       this.currentTrack.paused = typeof payload.paused === 'boolean' ? payload.paused : null;
