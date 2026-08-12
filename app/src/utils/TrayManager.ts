@@ -13,6 +13,8 @@ export interface TrayOptions {
   isRpcReady: () => boolean;
   isRpcEnabled: () => boolean;
   onToggleRpc: () => void;
+  // isScrobblingEnabled: () => boolean;
+  // onToggleScrobbling: () => void;
   onOpenPreferences: () => void;
   onQuit: () => void;
 }
@@ -76,6 +78,12 @@ export class TrayManager {
         checked: this.options.isRpcEnabled(),
         click: () => this.options.onToggleRpc(),
       },
+      // {
+      //   label: 'LastFM Scrobbling',
+      //   type: 'checkbox',
+      //   checked: this.options.isScrobblingEnabled(),
+      //   click: () => this.options.onToggleScrobbling
+      // },
       { type: 'separator' },
       {
         label: 'Preferences...',
