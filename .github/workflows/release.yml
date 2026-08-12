@@ -45,3 +45,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+  bump-cask:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: macos-latest
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Bump cask
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          brew tap bentheminernz/homebrew-tap
+          brew bump-cask-pr bentheminernz/homebrew-tap/nintendo-music-rpc \
+            --version="${{ github.event.release.tag_name }}" \
+            --no-browse
