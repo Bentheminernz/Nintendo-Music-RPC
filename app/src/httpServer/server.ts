@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { HttpServer } from './HttpServer';
 import { createLogger } from '../utils/logger';
@@ -23,6 +24,7 @@ export function createServer(options: ServerOptions) {
 class Server extends HttpServer {
     app: express.Express;
     private readonly getCurrentTrack: () => Track | null;
+    private readonly httpServer: http.Server;
     private wss: WebSocketServer;
 
     constructor(options: ServerOptions) {
@@ -36,11 +38,8 @@ class Server extends HttpServer {
         app.use('/api/current-track', this.createApiRequestHandler((req, res) =>
             this.getCurrentTrackHandler()));
 
-        const httpServer = app.listen(HTTP_SERVER_PORT, () => {
-            log.log('HTTP server listening on port %d', HTTP_SERVER_PORT);
-        });
-
-        this.wss = new WebSocketServer({ server: httpServer });
+        this.httpServer = http.createServer(app);
+        this.wss = new WebSocketServer({ server: this.httpServer });
         this.wss.on('connection', (ws) => {
             log.log('WebSocket client connected.');
             ws.send(JSON.stringify(this.buildTrackMessage(this.getCurrentTrack())));
@@ -48,6 +47,12 @@ class Server extends HttpServer {
         });
 
         options.subscribe((track) => this.broadcast(track));
+    }
+
+    listen(port: number): void {
+        this.httpServer.listen(port, () => {
+            log.log('HTTP server listening on port %d', port);
+        });
     }
 
     private buildTrackMessage(track: Track | null) {

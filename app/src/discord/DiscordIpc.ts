@@ -35,21 +35,18 @@ export class DiscordIpc {
     this.events = events;
   }
 
-  connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.destroyed) {
-        resolve();
-        return;
-      }
+  async connect(): Promise<void> {
+    if (this.destroyed) return;
 
-      const ipcPath = getDiscordIpcPath();
-      if (!ipcPath) {
-        warn('No Discord IPC path found.');
-        this.events.onDisconnect?.();
-        setTimeout(() => this.connect().catch(() => {}), RECONNECT_DELAY_MS);
-        resolve();
-        return;
-      }
+    const ipcPath = await getDiscordIpcPath();
+    if (!ipcPath) {
+      warn('No Discord IPC path found.');
+      this.events.onDisconnect?.();
+      setTimeout(() => this.connect().catch(() => {}), RECONNECT_DELAY_MS);
+      return;
+    }
+
+    return new Promise<void>((resolve, reject) => {
       const socket = net.createConnection(ipcPath);
       this.socket = socket;
       this.buffer = Buffer.alloc(0);

@@ -1,4 +1,4 @@
-import { app, shell } from 'electron';
+import { app, shell, safeStorage } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createLogger } from './logger';
@@ -16,6 +16,9 @@ export interface LastfmAuth {
   username: string | null;
   sessionKey: string | null;
 }
+
+/** Shape of the session key on disk: encrypted payload or legacy plaintext. */
+type StoredSessionKey = { enc: string } | string | null;
 
 const DEFAULTS: LastfmAuth = {
   username: null,
@@ -36,9 +39,21 @@ export class LastfmAuthStore {
   load(): LastfmAuth {
     try {
       const raw = fs.readFileSync(this.filePath, 'utf8');
-      const parsed = JSON.parse(raw) as { username: string | null; sessionKey: string | null };
-      log('Loaded Last.fm auth from disk.', { username: parsed.username });
-      return { username: parsed.username, sessionKey: parsed.sessionKey };
+      const parsed = JSON.parse(raw) as { username?: unknown; sessionKey?: StoredSessionKey };
+      const username = typeof parsed.username === 'string' ? parsed.username : null;
+
+      let sessionKey: string | null = null;
+      if (parsed.sessionKey && typeof parsed.sessionKey === 'object') {
+        sessionKey = this.decryptSessionKey(parsed.sessionKey.enc);
+        if (!sessionKey) {
+          warn('Stored session key could not be decrypted (keychain may have changed), please sign in again.');
+        }
+      } else if (typeof parsed.sessionKey === 'string' && parsed.sessionKey.length > 0) {
+        sessionKey = parsed.sessionKey;
+      }
+
+      log('Loaded Last.fm auth from disk.', { username });
+      return { username, sessionKey };
     } catch (err) {
       const isNotFound = (err as NodeJS.ErrnoException).code === 'ENOENT';
       if (isNotFound) {
@@ -50,12 +65,37 @@ export class LastfmAuthStore {
     }
   }
 
+  private encryptSessionKey(value: string): string | null {
+    try {
+      if (!safeStorage.isEncryptionAvailable()) return null;
+      return safeStorage.encryptString(value).toString('base64');
+    } catch (err) {
+      warn('safeStorage encryption failed, storing session key in plaintext.', err);
+      return null;
+    }
+  }
+
+  private decryptSessionKey(value: string): string | null {
+    try {
+      if (!safeStorage.isEncryptionAvailable()) return null;
+      return safeStorage.decryptString(Buffer.from(value, 'base64'));
+    } catch (err) {
+      warn('Failed to decrypt stored session key.', err);
+      return null;
+    }
+  }
+
   save(): void {
     try {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
+      let sessionKey: StoredSessionKey = this.data.sessionKey;
+      if (this.data.sessionKey) {
+        const encrypted = this.encryptSessionKey(this.data.sessionKey);
+        sessionKey = encrypted ? { enc: encrypted } : this.data.sessionKey;
+      }
       fs.writeFileSync(
         this.filePath,
-        JSON.stringify({ username: this.data.username, sessionKey: this.data.sessionKey }, null, 2),
+        JSON.stringify({ username: this.data.username, sessionKey }, null, 2),
         'utf8',
       );
       log('Saved Last.fm auth to disk.', { username: this.data.username });

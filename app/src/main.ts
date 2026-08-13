@@ -2,7 +2,7 @@ import { app, protocol, net } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { createLogger } from './utils/logger';
 import { RichPresenceApp } from './app';
-import { createServer } from './httpServer/server';
+import { createServer, HTTP_SERVER_PORT } from './httpServer/server';
 import { setupAutoLaunch } from './utils/autoLaunch';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -26,6 +26,7 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin') app.dock?.hide();
 
   setupAutoLaunch();
+  server.listen(HTTP_SERVER_PORT);
   presence.start();
 
   if (process.platform !== 'darwin') {
@@ -33,4 +34,7 @@ app.whenReady().then(() => {
   }
 });
 
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
 app.on('before-quit', () => presence.stop());
