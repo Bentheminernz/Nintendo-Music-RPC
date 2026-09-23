@@ -17,10 +17,7 @@ export interface DiscordIpcEvents {
   onDisconnect?: () => void;
 }
 
-/** Manages the IPC connection to Discord for Rich Presence. */
-// not going to lie, quite a bit of this is vibe coded tbh.
-// I understand the Discord RPC JS SDK thing, but manually doing IPC
-// is confusing and is needed for 'listening' presence so yay
+/** class for managing DiscordIPC */
 export class DiscordIpc {
   ready = false;
 
